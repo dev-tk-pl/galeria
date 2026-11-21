@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="GaleriaDesktop.Edytor"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:canvas="using:Microsoft.Graphics.Canvas.UI.Xaml"
+    xmlns:local="using:GaleriaDesktop">
+
+    <!-- Edytor zdjęcia: Przytnij + Korekta (jak edytor w PWA / aplikacja Zdjęcia w Windows) -->
+    <Grid Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="60" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Pasek górny -->
+        <Grid Padding="16,0" ColumnSpacing="16" Background="{ThemeResource SolidBackgroundFillColorSecondaryBrush}"
+              BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <Button Click="Anuluj_Click" Padding="8" ToolTipService.ToolTip="Wróć do zdjęcia">
+                    <FontIcon Glyph="&#xE72B;" FontSize="16" />
+                </Button>
+                <TextBlock x:Name="NazwaPliku" VerticalAlignment="Center" MaxWidth="300" TextTrimming="CharacterEllipsis"
+                           Style="{StaticResource BodyStrongTextBlockStyle}" />
+                <Button x:Name="PrzyciskCofnij" Click="Cofnij_Click" Padding="8" IsEnabled="False" ToolTipService.ToolTip="Cofnij">
+                    <Button.KeyboardAccelerators>
+                        <KeyboardAccelerator Modifiers="Control" Key="Z" />
+                    </Button.KeyboardAccelerators>
+                    <FontIcon Glyph="&#xE7A7;" FontSize="16" />
+                </Button>
+                <Button x:Name="PrzyciskPonow" Click="Ponow_Click" Padding="8" IsEnabled="False" ToolTipService.ToolTip="Ponów">
+                    <Button.KeyboardAccelerators>
+                        <KeyboardAccelerator Modifiers="Control" Key="Y" />
+                        <KeyboardAccelerator Modifiers="Control,Shift" Key="Z" />
+                    </Button.KeyboardAccelerators>
+                    <FontIcon Glyph="&#xE7A6;" FontSize="16" />
+                </Button>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <ToggleButton x:Name="ZakladkaPrzytnij" Click="Zakladka_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE7A8;" FontSize="16" />
+                        <TextBlock Text="Przytnij" />
+                    </StackPanel>
+                </ToggleButton>
+                <ToggleButton x:Name="ZakladkaKorekta" Click="Zakladka_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE706;" FontSize="16" />
+                        <TextBlock Text="Korekta" />
+                    </StackPanel>
+                </ToggleButton>
+                <ToggleButton x:Name="ZakladkaFiltry" Click="Zakladka_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <FontIcon Glyph="&#xE71C;" FontSize="16" />
+                        <TextBlock Text="Filtry" />
+                    </StackPanel>
+                </ToggleButton>
+            </StackPanel>
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <DropDownButton x:Name="OpcjeZapisu" Content="Opcje zapisywania" Style="{StaticResource AccentButtonStyle}">
+                    <DropDownButton.Flyout>
+                        <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuFlyoutItem Text="Zapisz kopię jako JPG" Click="ZapiszJpg_Click" />
+                            <MenuFlyoutItem Text="Zapisz kopię jako PNG" Click="ZapiszPng_Click" />
+                        </MenuFlyout>
+                    </DropDownButton.Flyout>
+                </DropDownButton>
+                <Button Content="Anuluj" Click="Anuluj_Click" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Obszar roboczy -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <canvas:CanvasControl x:Name="Plotno" Margin="40" Draw="Plotno_Draw" ClearColor="#00000000" />
+
+            <!-- Ramka kadrowania nad obrazem (ten sam margines co Plotno = te same współrzędne) -->
+            <Canvas x:Name="NakladkaKadru" Margin="40" Background="Transparent"
+                    PointerPressed="Nakladka_PointerPressed" PointerMoved="Nakladka_PointerMoved"
+                    PointerReleased="Nakladka_PointerReleased" PointerCanceled="Nakladka_PointerReleased">
+                <Path x:Name="Przyciemnienie" Fill="#99000000" />
+                <Path x:Name="SiatkaProstowania" Stroke="#59FFFFFF" StrokeThickness="1" />
+                <Rectangle x:Name="RamkaKadru" Stroke="White" StrokeThickness="2" />
+            </Canvas>
+
+            <!-- Narzędzia kadrowania -->
+            <Grid x:Name="PasekKadrowania" Grid.Row="1" Padding="16,10" ColumnSpacing="12"
+                  Background="{ThemeResource SolidBackgroundFillColorSecondaryBrush}"
+                  BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- Prostowanie: linijka przesuwa się pod stałym znacznikiem (jak w aplikacji Zdjęcia) -->
+                <StackPanel Grid.ColumnSpan="3" Spacing="2" Margin="0,0,0,8">
+                    <TextBlock x:Name="KatTekst" Text="0 °" HorizontalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <Grid MaxWidth="860" Height="32" Background="Transparent" ToolTipService.ToolTip="Prostowanie — przeciągnij linijkę"
+                          PointerPressed="Linijka_PointerPressed" PointerMoved="Linijka_PointerMoved"
+                          PointerReleased="Linijka_PointerReleased" PointerCanceled="Linijka_PointerReleased">
+                        <canvas:CanvasControl x:Name="Linijka" Draw="Linijka_Draw" ClearColor="#00000000" IsHitTestVisible="False" />
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6">
+                    <Button Click="ObrocWLewo_Click" Padding="8" ToolTipService.ToolTip="Obróć w lewo">
+                        <FontIcon Glyph="&#xE7AD;" FontSize="16" RenderTransformOrigin="0.5,0.5">
+                            <FontIcon.RenderTransform><ScaleTransform ScaleX="-1" /></FontIcon.RenderTransform>
+                        </FontIcon>
+                    </Button>
+                    <Button Click="ObrocWPrawo_Click" Padding="8" ToolTipService.ToolTip="Obróć w prawo">
+                        <FontIcon Glyph="&#xE7AD;" FontSize="16" />
+                    </Button>
+                </StackPanel>
+                <DropDownButton x:Name="WyborProporcji" Grid.Row="1" Grid.Column="1" Content="Proporcje: Dowolny">
+                    <DropDownButton.Flyout>
+                        <MenuFlyout x:Name="MenuProporcji" Placement="Top" />
+                    </DropDownButton.Flyout>
+                </DropDownButton>
+                <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                    <Button Content="Odbij w poziomie" Click="OdbijPoziomo_Click" />
+                    <Button Content="Odbij w pionie" Click="OdbijPionowo_Click" />
+                    <Button Content="Resetuj" Click="ResetujKadr_Click" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Panel korekty -->
+            <ScrollViewer x:Name="PanelKorekty" Grid.Column="1" Grid.RowSpan="2" Width="320" Visibility="Collapsed"
+                          Background="{ThemeResource SolidBackgroundFillColorSecondaryBrush}"
+                          BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="1,0,0,0">
+                <StackPanel Padding="20" Spacing="4">
+                    <TextBlock Text="Korekta" Style="{StaticResource SubtitleTextBlockStyle}" Margin="0,0,0,8" />
+                    <TextBlock Text="Światło" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,8,0,0" />
+                    <StackPanel x:Name="SuwakiSwiatla" />
+                    <TextBlock Text="Kolor" Style="{StaticResource BodyStrongTextBlockStyle}" Margin="0,16,0,0" />
+                    <StackPanel x:Name="SuwakiKoloru" />
+                    <Button Content="Resetuj korektę" Click="ResetujKorekte_Click" Margin="0,16,0,0" HorizontalAlignment="Stretch" />
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Panel filtrów (jak zakładka Filtry w PWA) -->
+            <ScrollViewer x:Name="PanelFiltrow" Grid.Column="1" Grid.RowSpan="2" Width="320" Visibility="Collapsed"
+                          Background="{ThemeResource SolidBackgroundFillColorSecondaryBrush}"
+                          BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="1,0,0,0">
+                <StackPanel Padding="20" Spacing="12">
+                    <TextBlock Text="Filtry" Style="{StaticResource SubtitleTextBlockStyle}" />
+                    <Button Click="AutoUlepszenie_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Padding="12">
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <TextBlock Text="✦" FontSize="22" VerticalAlignment="Center" />
+                            <StackPanel>
+                                <TextBlock Text="Automatyczne ulepszenie" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                <TextBlock Text="Popraw światło i kolory jednym kliknięciem" Style="{StaticResource CaptionTextBlockStyle}"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Button>
+                    <GridView x:Name="ListaFiltrow" SelectionMode="Single" SelectionChanged="ListaFiltrow_SelectionChanged"
+                              ScrollViewer.VerticalScrollMode="Disabled">
+                        <GridView.ItemTemplate>
+                            <DataTemplate x:DataType="local:PodgladFiltra">
+                                <StackPanel Width="78" Spacing="4" Padding="0,4">
+                                    <Border Width="78" Height="78" CornerRadius="4">
+                                        <Border.Background>
+                                            <ImageBrush ImageSource="{x:Bind Podglad}" Stretch="UniformToFill" />
+                                        </Border.Background>
+                                    </Border>
+                                    <TextBlock Text="{x:Bind Nazwa}" Style="{StaticResource CaptionTextBlockStyle}" TextAlignment="Center"
+                                               TextWrapping="Wrap" MaxLines="2" Height="32" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </GridView.ItemTemplate>
+                    </GridView>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</UserControl>

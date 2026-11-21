@@ -1,0 +1,527 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="GaleriaDesktop.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:GaleriaDesktop"
+    Title="Galeria">
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <!-- Układ wzorowany na PWA (zdjecia-pwa), kolory i typografia systemowe Windows 11 -->
+    <Grid x:Name="Korzen" PreviewKeyDown="Okno_PreviewKeyDown">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="254" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.Resources>
+            <Style x:Key="EtykietaPola" TargetType="TextBlock" BasedOn="{StaticResource CaptionTextBlockStyle}">
+                <Setter Property="FontSize" Value="10" />
+                <Setter Property="FontWeight" Value="Bold" />
+                <Setter Property="CharacterSpacing" Value="120" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorTertiaryBrush}" />
+            </Style>
+        </Grid.Resources>
+
+        <!-- Pasek boczny -->
+        <Grid Padding="15,25,15,17">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Orientation="Horizontal" Spacing="11" Margin="10,0,0,44">
+                <Border Width="39" Height="39" CornerRadius="12" Background="{ThemeResource AccentFillColorDefaultBrush}">
+                    <FontIcon Glyph="&#xE91B;" FontSize="20" Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}" />
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Galeria" Style="{StaticResource SubtitleTextBlockStyle}" FontSize="17" />
+                    <TextBlock Text="Twoje zdjęcia" Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                </StackPanel>
+            </StackPanel>
+
+            <TextBlock Grid.Row="1" Text="BIBLIOTEKA" Style="{StaticResource EtykietaPola}" Margin="12,0,0,11" />
+
+            <StackPanel Grid.Row="2" Spacing="5">
+                <StackPanel.Resources>
+                    <Style x:Key="PozycjaNawigacji" TargetType="Button">
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="Padding" Value="12,11" />
+                        <Setter Property="CornerRadius" Value="8" />
+                        <Setter Property="HorizontalAlignment" Value="Stretch" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    </Style>
+                </StackPanel.Resources>
+                <Button x:Name="NawWszystkie" Style="{StaticResource PozycjaNawigacji}" Click="NawWszystkie_Click"
+                        Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon Glyph="&#xE91B;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                        <TextBlock Grid.Column="1" Text="Wszystkie zdjęcia" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <TextBlock x:Name="LicznikWszystkich" Grid.Column="2" Text="0" VerticalAlignment="Center"
+                                   Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                </Button>
+                <Button x:Name="NawUlubione" Style="{StaticResource PozycjaNawigacji}" Click="NawUlubione_Click">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <FontIcon Glyph="&#xEB51;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                        <TextBlock Grid.Column="1" Text="Ulubione" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                        <TextBlock x:Name="LicznikUlubionych" Grid.Column="2" Text="0" VerticalAlignment="Center"
+                                   Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </Grid>
+                </Button>
+            </StackPanel>
+
+            <Button Grid.Row="4" Click="Ustawienia_Click" Margin="0,0,0,8" Padding="9,10"
+                    HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                    ToolTipService.ToolTip="Zarządzaj wybranymi folderami">
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Border Width="31" Height="31" CornerRadius="8" Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                        <FontIcon Glyph="&#xE8B7;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock Text="Wybrane foldery" Style="{StaticResource BodyStrongTextBlockStyle}" FontSize="12" />
+                        <TextBlock x:Name="OpisFolderu" Text="Dodaj folder ze zdjęciami" TextTrimming="CharacterEllipsis"
+                                   Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                    </StackPanel>
+                    <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="12" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                </Grid>
+            </Button>
+
+            <Button Grid.Row="5" Click="DodajFolder_Click" Margin="0,0,0,17" HorizontalAlignment="Stretch">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <FontIcon Glyph="&#xE710;" FontSize="14" />
+                    <TextBlock Text="Dodaj folder" />
+                </StackPanel>
+            </Button>
+
+            <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="7" Margin="5,0">
+                <Ellipse Width="7" Height="7" Fill="{ThemeResource SystemFillColorSuccessBrush}" />
+                <TextBlock Text="Zdjęcia zostają na Twoim urządzeniu" Style="{StaticResource CaptionTextBlockStyle}"
+                           Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Główny obszar -->
+        <Grid Grid.Column="1" Background="{ThemeResource LayerFillColorDefaultBrush}"
+              BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1,1,0,0" CornerRadius="8,0,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="72" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- Pasek górny -->
+            <Grid Padding="43,0" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <TextBlock Text="Biblioteka" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                    <FontIcon Glyph="&#xE76C;" FontSize="11" Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                    <TextBlock x:Name="TytulWidoku" Text="Wszystkie zdjęcia" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                </StackPanel>
+                <Button Click="Ustawienia_Click" Padding="8" ToolTipService.ToolTip="Ustawienia"
+                        HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <FontIcon Glyph="&#xE713;" FontSize="16" />
+                </Button>
+            </Grid>
+
+            <Grid Grid.Row="1" MaxWidth="1600" Padding="43,30,43,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Nagłówek (gdy brak plików) -->
+                <Grid x:Name="Naglowek">
+                    <StackPanel>
+                        <TextBlock Text="TWOJA KOLEKCJA" Style="{StaticResource EtykietaPola}" Margin="0,0,0,6" />
+                        <TextBlock Text="Wszystkie zdjęcia" Style="{StaticResource TitleTextBlockStyle}" />
+                        <TextBlock Text="Wybierz folder, aby rozpocząć przeglądanie zdjęć." Margin="0,4,0,0"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                    <Button Style="{StaticResource AccentButtonStyle}" Click="DodajFolder_Click"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                        <StackPanel Orientation="Horizontal" Spacing="9">
+                            <FontIcon Glyph="&#xE8B7;" FontSize="16" />
+                            <TextBlock Text="Wybierz folder" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <!-- Pasek narzędzi (gdy są pliki) -->
+                <Grid x:Name="PasekNarzedzi" Visibility="Collapsed" Padding="0,0,0,20" ColumnSpacing="19">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <AutoSuggestBox x:Name="Szukaj" PlaceholderText="Szukaj zdjęć i filmów… (Ctrl+K)" QueryIcon="Find"
+                                    Width="360" HorizontalAlignment="Left" TextChanged="Szukaj_TextChanged">
+                        <AutoSuggestBox.KeyboardAccelerators>
+                            <KeyboardAccelerator Modifiers="Control" Key="K" Invoked="Szukaj_Skrot" />
+                        </AutoSuggestBox.KeyboardAccelerators>
+                    </AutoSuggestBox>
+                    <TextBlock x:Name="LiczbaPlikow" Grid.Column="1" VerticalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Sortuj:" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <ComboBox x:Name="Sortowanie" MinWidth="130">
+                            <x:String>Najnowsze</x:String>
+                            <x:String>Najstarsze</x:String>
+                            <x:String>Nazwa</x:String>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Siatka:" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <ComboBox x:Name="WyborKolumn" MinWidth="130">
+                            <x:String>Domyślna</x:String>
+                            <x:String>3 kolumny</x:String>
+                            <x:String>5 kolumn</x:String>
+                            <x:String>7 kolumn</x:String>
+                        </ComboBox>
+                    </StackPanel>
+                    <Button Grid.Column="4" Click="DodajFolder_Click">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE710;" FontSize="14" />
+                            <TextBlock Text="Dodaj folder" />
+                        </StackPanel>
+                    </Button>
+                </Grid>
+
+                <!-- Pusty stan -->
+                <StackPanel x:Name="StanPusty" Grid.Row="1" MaxWidth="450" Margin="0,0,0,45"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Grid Width="220" Height="140" Margin="0,0,0,27">
+                        <Border Width="116" Height="92" Margin="9,29,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                CornerRadius="11" BorderThickness="6" BorderBrush="White" Background="#DFE9F8">
+                            <Border.RenderTransform><RotateTransform Angle="-12" CenterX="58" CenterY="46" /></Border.RenderTransform>
+                            <Grid>
+                                <Ellipse Width="17" Height="17" Fill="#F4C66B" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,14,0" />
+                                <Polygon Points="0,43 34,6 54,23 67,11 90,43" Fill="#87B8A7" VerticalAlignment="Bottom" Margin="4,0,0,0" />
+                            </Grid>
+                        </Border>
+                        <Border Width="116" Height="92" Margin="0,25,9,0" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                CornerRadius="11" BorderThickness="6" BorderBrush="White" Background="#F4E6D4">
+                            <Border.RenderTransform><RotateTransform Angle="11" CenterX="58" CenterY="46" /></Border.RenderTransform>
+                            <Grid>
+                                <Ellipse Width="17" Height="17" Fill="#F4C66B" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,14,0" />
+                                <Polygon Points="0,43 34,6 54,23 67,11 90,43" Fill="#87B8A7" VerticalAlignment="Bottom" Margin="4,0,0,0" />
+                            </Grid>
+                        </Border>
+                        <Border Width="125" Height="99" Margin="49,12,0,0" HorizontalAlignment="Left" VerticalAlignment="Top"
+                                CornerRadius="11" BorderThickness="6" BorderBrush="White" Background="#DCECF0">
+                            <Border.RenderTransform><RotateTransform Angle="-1" CenterX="62" CenterY="49" /></Border.RenderTransform>
+                            <Grid>
+                                <Ellipse Width="17" Height="17" Fill="#F4C66B" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,10,14,0" />
+                                <Polygon Points="0,43 34,6 54,23 67,11 90,43" Fill="#87B8A7" VerticalAlignment="Bottom" Margin="4,0,0,0" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+                    <TextBlock Text="Wszystkie wspomnienia w jednym miejscu" Style="{StaticResource SubtitleTextBlockStyle}"
+                               HorizontalAlignment="Center" TextAlignment="Center" />
+                    <TextBlock Text="Wskaż folder na komputerze. Galeria odczyta zdjęcia i filmy z folderu oraz podfolderów — bez wysyłania plików do internetu."
+                               TextWrapping="Wrap" TextAlignment="Center" Margin="0,9,0,20"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button Style="{StaticResource AccentButtonStyle}" Click="DodajFolder_Click" HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="9">
+                            <FontIcon Glyph="&#xE8B7;" FontSize="16" />
+                            <TextBlock Text="Wybierz folder ze zdjęciami" />
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Text="JPG · PNG · MP4 · MOV · AVI · 3GP i inne formaty obsługiwane przez Windows" Margin="0,15,0,0"
+                               HorizontalAlignment="Center" Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                </StackPanel>
+
+                <!-- Wczytywanie -->
+                <StackPanel x:Name="StanWczytywania" Grid.Row="1" Visibility="Collapsed" Spacing="8"
+                            HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <ProgressRing IsActive="True" HorizontalAlignment="Center" Margin="0,0,0,5" />
+                    <TextBlock Text="Przeglądam folder…" Style="{StaticResource BodyStrongTextBlockStyle}" HorizontalAlignment="Center" />
+                    <TextBlock Text="Wyszukuję zdjęcia również w podfolderach." HorizontalAlignment="Center"
+                               Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+
+                <!-- Brak wyników wyszukiwania -->
+                <StackPanel x:Name="BrakWynikow" Grid.Row="1" Visibility="Collapsed" Spacing="7" Margin="0,85,0,0"
+                            HorizontalAlignment="Center">
+                    <FontIcon x:Name="BrakWynikowIkona" Glyph="&#xE721;" FontSize="25" Margin="0,0,0,9" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                    <TextBlock x:Name="BrakWynikowTytul" Text="Nie znaleziono plików" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
+                    <TextBlock x:Name="BrakWynikowOpis" Text="Zmień wyszukiwaną frazę i spróbuj ponownie." HorizontalAlignment="Center"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+
+                <!-- Siatka miniatur; prawy margines ujemny kompensuje odstęp ostatniej kolumny -->
+                <GridView x:Name="Siatka" Grid.Row="1" Visibility="Collapsed" Margin="0,0,-17,0"
+                          SelectionMode="None" IsItemClickEnabled="True"
+                          ItemClick="Siatka_ItemClick"
+                          ContainerContentChanging="Siatka_ContainerContentChanging"
+                          SizeChanged="Siatka_SizeChanged">
+                    <GridView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal" Loaded="PanelSiatki_Loaded" />
+                        </ItemsPanelTemplate>
+                    </GridView.ItemsPanel>
+                    <GridView.ItemContainerStyle>
+                        <Style TargetType="GridViewItem" BasedOn="{StaticResource DefaultGridViewItemStyle}">
+                            <Setter Property="Margin" Value="0" />
+                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                        </Style>
+                    </GridView.ItemContainerStyle>
+                    <GridView.ItemTemplate>
+                        <DataTemplate x:DataType="local:ElementGalerii">
+                            <Grid Margin="0,0,17,22" RowSpacing="9">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <Border CornerRadius="8" Background="{ThemeResource ControlFillColorSecondaryBrush}" />
+                                <Border CornerRadius="8">
+                                    <Border.Background>
+                                        <ImageBrush ImageSource="{x:Bind Miniatura, Mode=OneWay}" Stretch="UniformToFill" />
+                                    </Border.Background>
+                                </Border>
+                                <Border Visibility="{x:Bind WidocznoscIkonyFilmu}" Margin="9" Padding="7"
+                                        CornerRadius="14" Background="#99000000"
+                                        HorizontalAlignment="Left" VerticalAlignment="Top">
+                                    <FontIcon Glyph="&#xE768;" FontSize="12" Foreground="White" />
+                                </Border>
+                                <StackPanel Grid.Row="1" Spacing="2" Margin="2,0">
+                                    <TextBlock Text="{x:Bind Nazwa}" ToolTipService.ToolTip="{x:Bind Nazwa}"
+                                               Style="{StaticResource BodyStrongTextBlockStyle}"
+                                               TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{x:Bind DataTekst}" Style="{StaticResource CaptionTextBlockStyle}"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </GridView.ItemTemplate>
+                    <GridView.Footer>
+                        <StackPanel Orientation="Horizontal" Spacing="9" HorizontalAlignment="Center" Margin="0,13,17,28">
+                            <Ellipse Width="7" Height="7" Fill="{ThemeResource SystemFillColorSuccessBrush}" VerticalAlignment="Center" />
+                            <TextBlock x:Name="NotkaDolna" Style="{StaticResource CaptionTextBlockStyle}"
+                                       Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                        </StackPanel>
+                    </GridView.Footer>
+                </GridView>
+            </Grid>
+        </Grid>
+
+        <!-- Ustawienia (jak settings-dialog w PWA) -->
+        <ContentDialog x:Name="OknoUstawien" Title="Ustawienia" CloseButtonText="Gotowe" DefaultButton="Close">
+            <StackPanel Spacing="24" Width="500">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Wygląd aplikacji" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock Text="Wybierz motyw całej aplikacji, również podglądu zdjęć." TextWrapping="Wrap"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <RadioButtons x:Name="WyborMotywu" MaxColumns="3">
+                        <x:String>Systemowy</x:String>
+                        <x:String>Jasny</x:String>
+                        <x:String>Ciemny</x:String>
+                    </RadioButtons>
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Wybrane foldery" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock Text="Każdy podłączony folder jest osobnym źródłem biblioteki. Odłączenie nie usuwa plików z dysku."
+                               TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <ItemsControl x:Name="ListaFolderow">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="local:FolderZrodlowy">
+                                <Grid Margin="0,0,0,6" Padding="10,8" ColumnSpacing="10" CornerRadius="8"
+                                      Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                                      BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <FontIcon Glyph="&#xE8B7;" FontSize="16" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Nazwa}" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                                        <TextBlock Text="{x:Bind Opis}" TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"
+                                                   ToolTipService.ToolTip="{x:Bind Sciezka}"
+                                                   Style="{StaticResource CaptionTextBlockStyle}"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Content="Odłącz" Click="OdlaczFolder_Click" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="BrakFolderow" Text="Nie ma jeszcze podłączonych folderów."
+                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Style="{StaticResource AccentButtonStyle}" Click="DodajFolder_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE710;" FontSize="14" />
+                                <TextBlock Text="Dodaj folder" />
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="OdlaczWszystkie" Content="Odłącz wszystkie" Click="OdlaczWszystkie_Click" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                    <Ellipse Width="7" Height="7" Fill="{ThemeResource SystemFillColorSuccessBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="Zdjęcia pozostają na Twoim urządzeniu" Style="{StaticResource CaptionTextBlockStyle}"
+                               Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                </StackPanel>
+            </StackPanel>
+        </ContentDialog>
+
+        <!-- Podgląd zdjęcia / filmu -->
+        <Grid x:Name="Podglad" Grid.ColumnSpan="2" Visibility="Collapsed"
+              Background="{ThemeResource SolidBackgroundFillColorBaseBrush}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="64" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Padding="22,0" ColumnSpacing="24" Background="{ThemeResource SolidBackgroundFillColorSecondaryBrush}"
+                  BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Button Click="Zamknij_Click" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="9">
+                        <FontIcon Glyph="&#xE711;" FontSize="14" />
+                        <TextBlock Text="Zamknij" />
+                    </StackPanel>
+                    <Button.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="Escape" />
+                    </Button.KeyboardAccelerators>
+                </Button>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="28" VerticalAlignment="Center">
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="NAZWA PLIKU" Style="{StaticResource EtykietaPola}" />
+                        <TextBlock x:Name="PodgladNazwa" MaxWidth="220" TextTrimming="CharacterEllipsis" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="DATA" Style="{StaticResource EtykietaPola}" />
+                        <TextBlock x:Name="PodgladData" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="ROZMIAR" Style="{StaticResource EtykietaPola}" />
+                        <TextBlock x:Name="PodgladRozmiar" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    </StackPanel>
+                    <StackPanel Spacing="2">
+                        <TextBlock Text="ŚCIEŻKA" Style="{StaticResource EtykietaPola}" />
+                        <TextBlock x:Name="PodgladSciezka" MaxWidth="300" TextTrimming="CharacterEllipsis" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    </StackPanel>
+                    <TextBlock x:Name="PodgladLicznik" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                </StackPanel>
+                <!-- Narzędzia (jak viewer-tools w PWA) -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <Border x:Name="ZnaczekWideo" VerticalAlignment="Center" CornerRadius="12" Padding="10,5" Margin="0,0,6,0"
+                            Background="{ThemeResource SubtleFillColorSecondaryBrush}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon Glyph="&#xE768;" FontSize="11" />
+                            <TextBlock Text="WIDEO" FontSize="11" FontWeight="Bold" CharacterSpacing="80" />
+                        </StackPanel>
+                    </Border>
+                    <StackPanel x:Name="NarzedziaZdjecia" Orientation="Horizontal" Spacing="6">
+                        <Button Click="Edytuj_Click" Style="{StaticResource AccentButtonStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE70F;" FontSize="14" />
+                                <TextBlock Text="Edytuj" />
+                            </StackPanel>
+                        </Button>
+                        <Button Click="Obroc_Click" Padding="8" ToolTipService.ToolTip="Obróć">
+                            <FontIcon Glyph="&#xE7AD;" FontSize="16" />
+                        </Button>
+                        <Button Click="Usun_Click" Padding="8" ToolTipService.ToolTip="Przenieś do Kosza">
+                            <FontIcon Glyph="&#xE74D;" FontSize="16" />
+                        </Button>
+                        <Button Click="Drukuj_Click" Padding="8" ToolTipService.ToolTip="Drukuj">
+                            <FontIcon Glyph="&#xE749;" FontSize="16" />
+                        </Button>
+                        <Border Width="1" Height="22" Margin="6,0" Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+                    </StackPanel>
+                    <Button x:Name="PrzyciskUlubione" Click="Ulubione_Click" Padding="8" ToolTipService.ToolTip="Ulubione">
+                        <FontIcon x:Name="IkonaUlubione" Glyph="&#xEB51;" FontSize="16" />
+                    </Button>
+                    <StackPanel x:Name="Powiekszenie" Orientation="Horizontal" Spacing="8" Margin="6,0,0,0">
+                        <Slider x:Name="SuwakPowiekszenia" Width="120" Minimum="100" Maximum="400" StepFrequency="10"
+                                VerticalAlignment="Center"
+                                ToolTipService.ToolTip="Powiększenie (także Ctrl + kółko myszy)" />
+                        <TextBlock x:Name="WartoscPowiekszenia" Text="100%" Width="40" VerticalAlignment="Center"
+                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1" Padding="80,30">
+                <ScrollViewer x:Name="PrzewijanieZdjecia" ZoomMode="Enabled" MinZoomFactor="1" MaxZoomFactor="4"
+                              HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollMode="Auto" VerticalScrollMode="Auto"
+                              SizeChanged="PrzewijanieZdjecia_SizeChanged" ViewChanged="PrzewijanieZdjecia_ViewChanged">
+                    <Grid x:Name="RamkaZdjecia">
+                        <Image x:Name="PodgladZdjecia" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Grid>
+                </ScrollViewer>
+                <MediaPlayerElement x:Name="PodgladFilmu" AreTransportControlsEnabled="True" AutoPlay="True"
+                                    Visibility="Collapsed" />
+            </Grid>
+
+            <!-- Metadane EXIF pod zdjęciem (jak viewer-infobar w PWA) -->
+            <Grid Grid.Row="2" x:Name="PasekExif" Visibility="Collapsed" Padding="20,9,20,10"
+                  Background="{ThemeResource SolidBackgroundFillColorSecondaryBrush}"
+                  BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,1,0,0">
+                <ItemsControl x:Name="ListaExif" HorizontalAlignment="Center">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="28" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="local:PoleExif">
+                            <StackPanel Spacing="3">
+                                <TextBlock Text="{x:Bind Etykieta}" Style="{StaticResource EtykietaPola}" HorizontalAlignment="Center" />
+                                <TextBlock Text="{x:Bind Wartosc}" Style="{StaticResource BodyStrongTextBlockStyle}" HorizontalAlignment="Center" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+            <Button Grid.Row="1" Click="Poprzedni_Click" Width="43" Height="55" Margin="17,0"
+                    HorizontalAlignment="Left" VerticalAlignment="Center" ToolTipService.ToolTip="Poprzedni plik">
+                <FontIcon Glyph="&#xE76B;" FontSize="18" />
+            </Button>
+            <Button Grid.Row="1" Click="Nastepny_Click" Width="43" Height="55" Margin="17,0"
+                    HorizontalAlignment="Right" VerticalAlignment="Center" ToolTipService.ToolTip="Następny plik">
+                <FontIcon Glyph="&#xE76C;" FontSize="18" />
+            </Button>
+        </Grid>
+
+        <!-- Edytor zdjęcia nad podglądem -->
+        <local:Edytor x:Name="EdytorZdjec" Grid.ColumnSpan="2" Visibility="Collapsed" />
+    </Grid>
+</Window>
