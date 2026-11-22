@@ -9,8 +9,9 @@ Dzięki temu działają też stare formaty, których przeglądarki nie obsługuj
 (MJPEG + PCM) i 3GP z telefonów (MPEG-4 + AMR-NB).
 
 > Status: prototyp. Działa wybór folderu, siatka miniatur, zapamiętanie folderu i podgląd zdjęć/filmów.
-> Aktualizacje (Velopack + GitHub Releases): przy starcie aplikacja sprawdza nową wersję i sama ją instaluje
-> albo, po wyłączeniu w Ustawieniach, tylko o niej informuje.
+> Aktualizacje (Velopack + GitHub Releases): przy starcie okienko „Sprawdzanie dostępności aktualizacji…” —
+> jeśli jest nowa wersja, pobiera ją, instaluje i uruchamia; jeśli nie, otwiera Galerię. Po wyłączeniu
+> w Ustawieniach okienka nie ma, a o nowej wersji informuje tylko napis na górnym pasku.
 
 ## Wymagania
 
@@ -126,6 +127,7 @@ jest przy wczytaniu przenoszony do listy `Foldery`.
 | Plik | Co zawiera |
 |---|---|
 | `App.xaml`, `App.xaml.cs` | Start aplikacji |
+| `OknoStartowe.xaml`, `OknoStartowe.xaml.cs` | Okienko przy starcie: sprawdzenie i pobranie aktualizacji |
 | `MainWindow.xaml`, `MainWindow.xaml.cs` | Okno: pasek boczny, wyszukiwanie i sortowanie, siatka miniatur, podgląd |
 | `ElementGalerii.cs` | Jeden plik w siatce + listy obsługiwanych rozszerzeń |
 | `Ustawienia.cs` | Odczyt/zapis `ustawienia.json` |

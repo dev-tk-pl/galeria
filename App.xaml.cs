@@ -1,4 +1,6 @@
 using Microsoft.UI.Xaml;
+using Velopack;
+using Velopack.Sources;
 
 namespace GaleriaDesktop;
 
@@ -12,7 +14,10 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow();
+        // Zainstalowana wersja z włączoną autoaktualizacją: najpierw okienko sprawdzania aktualizacji.
+        var mgr = new UpdateManager(new GithubSource("https://github.com/dev-tk-pl/galeria", null, false));
+        var ustawienia = Ustawienia.Wczytaj();
+        _window = mgr.IsInstalled && ustawienia.Autoaktualizacja ? new OknoStartowe(mgr, ustawienia) : new MainWindow();
         _window.Activate();
     }
 }

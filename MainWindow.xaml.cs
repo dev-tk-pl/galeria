@@ -71,11 +71,10 @@ public sealed partial class MainWindow : Window
 
         // Po restarcie zapamiętane foldery wczytują się same.
         _ = WczytajBiblioteke();
-        _ = SprawdzAktualizacje();
+        if (!_ustawienia.Autoaktualizacja) _ = SprawdzAktualizacje(); // przy włączonej sprawdziło już OknoStartowe
     }
 
-    // Jeśli na GitHub Releases jest nowsza wersja: przy włączonej autoaktualizacji pobierz, zainstaluj
-    // i uruchom ponownie; przy wyłączonej tylko pokaż informację na górnym pasku.
+    // Autoaktualizacja wyłączona: jeśli na GitHub Releases jest nowsza wersja, tylko informacja na górnym pasku.
     private async Task SprawdzAktualizacje()
     {
         try
@@ -85,22 +84,12 @@ public sealed partial class MainWindow : Window
             var nowa = await mgr.CheckForUpdatesAsync();
             if (nowa == null) return;
 
-            var wersja = nowa.TargetFullRelease.Version;
+            TekstAktualizacji.Text = $"Dostępna wersja {nowa.TargetFullRelease.Version}";
             StanAktualizacji.Visibility = Visibility.Visible;
-            KoloAktualizacji.Visibility = Widocznosc(_ustawienia.Autoaktualizacja);
-            if (!_ustawienia.Autoaktualizacja)
-            {
-                TekstAktualizacji.Text = $"Dostępna wersja {wersja}";
-                return;
-            }
-            TekstAktualizacji.Text = $"Pobieranie wersji {wersja}… nie zamykaj okna";
-            await mgr.DownloadUpdatesAsync(nowa);
-            mgr.ApplyUpdatesAndRestart(nowa);
         }
         catch (Exception ex)
         {
             // Brak sieci itp. — spróbujemy przy następnym uruchomieniu
-            StanAktualizacji.Visibility = Visibility.Collapsed;
             Debug.WriteLine($"Aktualizacja: {ex.Message}");
         }
     }
@@ -525,7 +514,7 @@ public sealed partial class MainWindow : Window
     private const string DomyslnyKolor = "#138AE2";
 
     // Nadpisuje kolor akcentu Windows (SystemAccentColor i jego jaśniejsze/ciemniejsze odcienie); null = kolor domyślny.
-    private static void UstawKolorPrzewodni(string? kolor)
+    internal static void UstawKolorPrzewodni(string? kolor)
     {
         kolor ??= DomyslnyKolor;
         var zasoby = Application.Current.Resources;
