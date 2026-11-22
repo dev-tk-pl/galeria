@@ -24,6 +24,56 @@
             </Style>
         </Grid.Resources>
 
+        <!-- Menu pliku pod prawym przyciskiem (kafelek i podgląd), jak w „Zdjęciach” Windows 11.
+             Może wychodzić poza okno — w niskim oknie (laptop) inaczej dolne pozycje były ucięte. -->
+        <FlyoutBase.AttachedFlyout>
+            <MenuFlyout x:Name="MenuPliku" ShouldConstrainToRootBounds="False">
+                <MenuFlyoutItem x:Name="MenuOtworz" Text="Otwórz" Click="MenuOtworz_Click">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE7B3;" /></MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem x:Name="MenuEdytuj" Text="Edytuj" Click="MenuEdytuj_Click">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE70F;" /></MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem x:Name="MenuUlubione" Click="MenuUlubione_Click">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xEB51;" /></MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem Text="Rozpocznij pokaz slajdów" Click="MenuPokaz_Click">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE786;" /></MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem x:Name="MenuDrukuj" Text="Drukuj" Click="MenuDrukuj_Click">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE749;" /></MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem Text="Kopiuj" Click="MenuKopiuj_Click">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8C8;" /></MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem Text="Kopiuj jako ścieżkę" Click="MenuKopiujSciezke_Click">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE71B;" /></MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem Text="Udostępnij" Click="MenuUdostepnij_Click">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE72D;" /></MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutSubItem Text="Przenieś/kopiuj">
+                    <MenuFlyoutSubItem.Icon><FontIcon Glyph="&#xE8DE;" /></MenuFlyoutSubItem.Icon>
+                    <MenuFlyoutItem Text="Kopiuj do folderu…" Click="MenuKopiujDo_Click" />
+                    <MenuFlyoutItem Text="Przenieś do folderu…" Click="MenuPrzeniesDo_Click" />
+                </MenuFlyoutSubItem>
+                <MenuFlyoutItem Text="Zmień nazwę" Click="MenuZmienNazwe_Click">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE8AC;" /></MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Otwórz w Eksploratorze plików" Click="MenuEksplorator_Click">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE838;" /></MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutItem Text="Tworzenie klipu wideo w programie Microsoft Clipchamp" Click="MenuClipchamp_Click">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE714;" /></MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+                <MenuFlyoutSeparator />
+                <MenuFlyoutItem Text="Usuń" Click="MenuUsun_Click" Foreground="{ThemeResource SystemFillColorCriticalBrush}">
+                    <MenuFlyoutItem.Icon><FontIcon Glyph="&#xE74D;" /></MenuFlyoutItem.Icon>
+                </MenuFlyoutItem>
+            </MenuFlyout>
+        </FlyoutBase.AttachedFlyout>
+
         <!-- Pasek boczny -->
         <Grid Padding="15,25,15,17">
             <Grid.RowDefinitions>
@@ -183,12 +233,6 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" Spacing="12">
-                        <AutoSuggestBox x:Name="Szukaj" PlaceholderText="Szukaj zdjęć i filmów… (Ctrl+K)" QueryIcon="Find"
-                                        Width="360" TextChanged="Szukaj_TextChanged">
-                            <AutoSuggestBox.KeyboardAccelerators>
-                                <KeyboardAccelerator Modifiers="Control" Key="K" Invoked="Szukaj_Skrot" />
-                            </AutoSuggestBox.KeyboardAccelerators>
-                        </AutoSuggestBox>
                         <Button x:Name="WybierzPliki" Click="WybierzPliki_Click">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE73A;" FontSize="14" />
@@ -296,12 +340,12 @@
                                Style="{StaticResource CaptionTextBlockStyle}" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
 
-                <!-- Brak wyników wyszukiwania -->
+                <!-- Puste Ulubione -->
                 <StackPanel x:Name="BrakWynikow" Grid.Row="1" Visibility="Collapsed" Spacing="7" Margin="0,85,0,0"
                             HorizontalAlignment="Center">
-                    <FontIcon x:Name="BrakWynikowIkona" Glyph="&#xE721;" FontSize="25" Margin="0,0,0,9" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
-                    <TextBlock x:Name="BrakWynikowTytul" Text="Nie znaleziono plików" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
-                    <TextBlock x:Name="BrakWynikowOpis" Text="Zmień wyszukiwaną frazę i spróbuj ponownie." HorizontalAlignment="Center"
+                    <FontIcon Glyph="&#xEB51;" FontSize="25" Margin="0,0,0,9" Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                    <TextBlock Text="Nie masz jeszcze ulubionych" Style="{StaticResource SubtitleTextBlockStyle}" HorizontalAlignment="Center" />
+                    <TextBlock Text="Kliknij serduszko na zdjęciu, aby dodać je do ulubionych." HorizontalAlignment="Center"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                 </StackPanel>
 
@@ -327,7 +371,7 @@
                     </GridView.ItemContainerStyle>
                     <GridView.ItemTemplate>
                         <DataTemplate x:DataType="local:ElementGalerii">
-                            <Grid RowSpacing="9" Background="Transparent"
+                            <Grid RowSpacing="9" Background="Transparent" RightTapped="Kafelek_RightTapped"
                                   PointerEntered="Kafelek_PointerEntered" PointerExited="Kafelek_PointerExited">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="*" />
@@ -386,10 +430,6 @@
                         </StackPanel>
                     </GridView.Footer>
                 </GridView>
-
-                <!-- Komunikat po zapisie / ZIP / udostępnianiu -->
-                <InfoBar x:Name="Komunikat" Grid.Row="1" IsClosable="True" Margin="0,0,0,20"
-                         HorizontalAlignment="Center" VerticalAlignment="Bottom" />
             </Grid>
         </Grid>
 
@@ -500,7 +540,7 @@
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
 
-            <Grid Padding="22,0" ColumnSpacing="24" Background="{ThemeResource SolidBackgroundFillColorSecondaryBrush}"
+            <Grid x:Name="PasekPodgladu" Padding="22,0" ColumnSpacing="24" Background="{ThemeResource SolidBackgroundFillColorSecondaryBrush}"
                   BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="0,0,0,1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -568,21 +608,27 @@
                     <StackPanel x:Name="Powiekszenie" Orientation="Horizontal" Spacing="8" Margin="6,0,0,0">
                         <Slider x:Name="SuwakPowiekszenia" Width="120" Minimum="100" Maximum="400" StepFrequency="10"
                                 VerticalAlignment="Center"
-                                ToolTipService.ToolTip="Powiększenie (także Ctrl + kółko myszy)" />
+                                ToolTipService.ToolTip="Powiększenie (także kółko myszy)" />
                         <TextBlock x:Name="WartoscPowiekszenia" Text="100%" Width="40" VerticalAlignment="Center"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
                 </StackPanel>
             </Grid>
 
-            <Grid Grid.Row="1" Padding="80,30">
+            <!-- Tło przezroczyste: prawy klik działa w całym obszarze, nie tylko na zdjęciu; klik kończy pokaz slajdów -->
+            <Grid Grid.Row="1" Padding="80,30" Background="Transparent"
+                  RightTapped="Podglad_RightTapped" Tapped="ObszarPodgladu_Tapped">
                 <ScrollViewer x:Name="PrzewijanieZdjecia" ZoomMode="Enabled" MinZoomFactor="1" MaxZoomFactor="4"
                               HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"
                               HorizontalScrollMode="Auto" VerticalScrollMode="Auto"
                               SizeChanged="PrzewijanieZdjecia_SizeChanged" ViewChanged="PrzewijanieZdjecia_ViewChanged">
-                    <Grid x:Name="RamkaZdjecia">
+                    <!-- Kółko powiększa od kursora, przeciąganie przesuwa powiększone zdjęcie -->
+                    <local:RamkaZdjecia x:Name="RamkaZdjecia" Background="Transparent"
+                                        PointerWheelChanged="Ramka_PointerWheelChanged" PointerPressed="Ramka_PointerPressed"
+                                        PointerMoved="Ramka_PointerMoved" PointerReleased="Ramka_PointerReleased"
+                                        PointerCaptureLost="Ramka_PointerCaptureLost">
                         <Image x:Name="PodgladZdjecia" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                    </Grid>
+                    </local:RamkaZdjecia>
                 </ScrollViewer>
                 <MediaPlayerElement x:Name="PodgladFilmu" AreTransportControlsEnabled="True" AutoPlay="True"
                                     Visibility="Collapsed" />
@@ -608,15 +654,19 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Grid>
-            <Button Grid.Row="1" Click="Poprzedni_Click" Width="43" Height="55" Margin="17,0"
+            <Button x:Name="PrzyciskPoprzedni" Grid.Row="1" Click="Poprzedni_Click" Width="43" Height="55" Margin="17,0"
                     HorizontalAlignment="Left" VerticalAlignment="Center" ToolTipService.ToolTip="Poprzedni plik">
                 <FontIcon Glyph="&#xE76B;" FontSize="18" />
             </Button>
-            <Button Grid.Row="1" Click="Nastepny_Click" Width="43" Height="55" Margin="17,0"
+            <Button x:Name="PrzyciskNastepny" Grid.Row="1" Click="Nastepny_Click" Width="43" Height="55" Margin="17,0"
                     HorizontalAlignment="Right" VerticalAlignment="Center" ToolTipService.ToolTip="Następny plik">
                 <FontIcon Glyph="&#xE76C;" FontSize="18" />
             </Button>
         </Grid>
+
+        <!-- Komunikat po zapisie / ZIP / udostępnianiu / operacjach z menu pliku; nad podglądem, żeby był widoczny także w nim -->
+        <InfoBar x:Name="Komunikat" Grid.Column="1" IsClosable="True" Margin="0,0,0,20"
+                 HorizontalAlignment="Center" VerticalAlignment="Bottom" />
 
         <!-- Edytor zdjęcia nad podglądem -->
         <local:Edytor x:Name="EdytorZdjec" Grid.ColumnSpan="2" Visibility="Collapsed" />

@@ -24,11 +24,11 @@ public class ElementGalerii : INotifyPropertyChanged
     public required string Folder { get; init; }          // podłączony folder, z którego pochodzi plik
     public required string SciezkaWzgledna { get; init; } // względem Folder, z „/” jak w PWA
     public required bool CzyFilm { get; init; }
-    public required DateTime DataModyfikacji { get; init; }
+    public required DateTime Data { get; init; }          // data wykonania (EXIF / data nagrania), gdy brak — modyfikacji
     public required long Rozmiar { get; init; }
 
     public string Nazwa => Path.GetFileName(Sciezka);
-    public string DataTekst => DataModyfikacji.ToString("d MMMM yyyy", Polski);
+    public string DataTekst => Data.ToString("d MMMM yyyy", Polski);
     public string RozmiarTekst => Rozmiar < 1024 * 1024
         ? $"{Math.Max(1, Math.Round(Rozmiar / 1024.0))} KB"
         : $"{(Rozmiar / (1024.0 * 1024)).ToString("0.0", Polski)} MB";

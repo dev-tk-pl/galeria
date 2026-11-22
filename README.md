@@ -104,8 +104,10 @@ pasek narzędzi nad siatką, karty z nazwą i datą pliku. Kolory są brane z Wi
    (**Wybierz kolor** otwiera paletę barw z polami RGB i hex; **Kolor domyślny** wraca do niebieskiego `#138AE2`), lista
    folderów z liczbą plików, **Odłącz** (pliki zostają na dysku), **Dodaj folder**, **Odłącz wszystkie**,
    przełącznik **Aktualizacje** (Instaluj automatycznie / Tylko informuj) i numer wersji.
-3. **Szukaj** (albo **Ctrl+K**) filtruje po nazwie pliku i ścieżce. **Sortuj**: Najnowsze, Najstarsze,
-   Nazwa. **Siatka**: Domyślna, 3, 5 albo 7 kolumn.
+3. **Sortuj**: Najnowsze, Najstarsze, Nazwa. Data to **data wykonania**, jak w „Zdjęciach” Windows: zdjęcie —
+   z EXIF, film — data nagrania z metadanych; gdy jej nie ma, data modyfikacji pliku (nie data utworzenia, bo
+   Windows ustawia ją przy kopiowaniu). Ta sama data jest na kafelku i w podglądzie.
+   **Siatka**: Domyślna, 3, 5 albo 7 kolumn.
    **Wybierz pliki** włącza zaznaczanie (pola wyboru na kafelkach): **Zaznacz widoczne**, **Zapisz do…**
    (kopie wszystkich plików luzem w wybranym folderze; powtórzone nazwy dostają „(2)”, „(3)”…),
    **Pobierz ZIP**, **Udostępnij** (systemowe okno udostępniania Windows), **Gotowe**.
@@ -114,7 +116,8 @@ pasek narzędzi nad siatką, karty z nazwą i datą pliku. Kolory są brane z Wi
 4. Kliknij kafelek, żeby otworzyć podgląd:
    - u góry nazwa, data, rozmiar, ścieżka i licznik; pod zdjęciem aparat/telefon, ogniskowa, przysłona, czas, ISO;
    - **Obróć** (tylko widok, plik bez zmian), **Usuń** (do Kosza Windows, po potwierdzeniu), **Drukuj**
-     (systemowe okno drukowania), **♥** (ulubione), suwak powiększenia 100–400% (albo Ctrl + kółko myszy);
+     (systemowe okno drukowania), **♥** (ulubione), suwak powiększenia 100–400% (albo kółko myszy —
+     powiększa od miejsca pod kursorem); powiększone zdjęcie przesuwa się przeciąganiem myszą;
    - **←/→** albo przyciski po bokach przechodzą do poprzedniego/następnego pliku;
    - **Esc** albo **Zamknij** zamyka podgląd.
 5. **Edytuj** (w podglądzie zdjęcia) otwiera edytor:
@@ -129,6 +132,16 @@ pasek narzędzi nad siatką, karty z nazwą i datą pliku. Kolory są brane z Wi
      prostowanie, suwaki i filtr;
    - **Opcje zapisywania** → zapis kopii JPG/PNG w pełnej rozdzielczości (okno zapisu podpowiada folder
      oryginału i nazwę „…-edytowane”). Oryginał zostaje bez zmian. **Anuluj** albo **Esc** zamyka edytor.
+6. **Prawy przycisk** na kafelku albo na otwartym zdjęciu/filmie otwiera menu pliku (jak w „Zdjęciach” Windows):
+   Otwórz, Edytuj, Dodaj do / Usuń z ulubionych, **Rozpocznij pokaz slajdów**, Drukuj, **Kopiuj** (plik do schowka —
+   Ctrl+V w Eksploratorze), **Kopiuj jako ścieżkę**, Udostępnij, **Przenieś/kopiuj** (do wskazanego folderu),
+   **Zmień nazwę**, **Otwórz w Eksploratorze plików**, **Tworzenie klipu wideo w programie Microsoft Clipchamp**,
+   Usuń (do Kosza). Dla filmu nie ma Edytuj i Drukuj. Menu działa na klikniętym pliku, także w trybie zaznaczania.
+   - Clipchamp to osobna aplikacja Microsoftu (wymaga konta Microsoft). Film otwiera się w nim od razu; zdjęć
+     Clipchamp nie przyjmuje w ten sposób, więc dla zdjęcia tylko się uruchamia. Bez Clipchampa otwiera się
+     jego strona w Microsoft Store.
+   - Pokaz slajdów: pełny ekran od wybranego pliku, zdjęcie co 5 s, film do końca; ←/→ przełącza ręcznie,
+     **Esc** albo kliknięcie kończy pokaz.
 
 Foldery, motyw, kolor przewodni, liczba kolumn, ulubione i ustawienie aktualizacji są zapamiętywane.
 

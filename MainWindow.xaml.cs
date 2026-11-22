@@ -37,6 +37,10 @@ public sealed partial class MainWindow : Window
     private bool _odswiezanieSiatki; // podmiana ItemsSource — ignorujemy zdarzenia SelectionChanged
     private bool _eksport;
     private List<StorageFile> _doUdostepnienia = [];
+    private ElementGalerii? _elementMenu; // plik, dla którego otwarto menu pod prawym przyciskiem
+    private bool _pokazSlajdow;
+    private readonly DispatcherTimer _zegarPokazu = new() { Interval = TimeSpan.FromSeconds(5) };
+    private Windows.Media.Playback.MediaPlayer? _odtwarzacz; // odtwarzacz podglądu z podpiętym końcem filmu
 
     public MainWindow()
     {
@@ -60,6 +64,7 @@ public sealed partial class MainWindow : Window
             _ustawienia.Zapisz();
         };
         OknoKoloru.Opening += (_, _) => WyborKoloru.Color = (Windows.UI.Color)Application.Current.Resources["SystemAccentColor"];
+        _zegarPokazu.Tick += (_, _) => PrzejdzO(1);
 
         // Udostępnianie: systemowe okno Windows dostaje pliki przygotowane w Udostepnij_Click.
         var okno = WinRT.Interop.WindowNative.GetWindowHandle(this);
@@ -183,46 +188,72 @@ public sealed partial class MainWindow : Window
         return new DirectoryInfo(folder).EnumerateFiles("*", opcje)
             .Select(plik => (plik, film: ElementGalerii.RozszerzeniaFilmow.Contains(plik.Extension)))
             .Where(x => x.film || ElementGalerii.RozszerzeniaZdjec.Contains(x.plik.Extension))
-            .Select(x => NowyElement(x.plik, folder, x.film))
+            .AsParallel().AsOrdered() // daty z metadanych czytane równolegle (wątki tła)
+            .Select(x => NowyElement(x.plik, folder, x.film, DataWykonania(x.plik)))
             .ToList();
     }
 
-    private static ElementGalerii NowyElement(FileInfo plik, string folder, bool film) => new()
+    private static ElementGalerii NowyElement(FileInfo plik, string folder, bool film, DateTime data) => new()
     {
         Sciezka = plik.FullName,
         Folder = folder,
         SciezkaWzgledna = Path.GetRelativePath(folder, plik.FullName).Replace('\\', '/'),
         CzyFilm = film,
-        DataModyfikacji = plik.LastWriteTime,
+        Data = data,
         Rozmiar = plik.Length,
     };
 
-    private void Edytuj_Click(object sender, RoutedEventArgs e)
-        => _ = EdytorZdjec.Otworz(_widoczne[_indeksPodgladu].Sciezka, AppWindow.Id);
+    private static readonly string[] KluczeDaty = ["System.Photo.DateTaken", "System.Media.DateEncoded"];
+
+    // Data wykonania jak w „Zdjęciach” Windows: zdjęcie — EXIF, film — data nagrania; gdy brak — data modyfikacji.
+    // Nie data utworzenia: Windows ustawia ją przy kopiowaniu pliku (w bibliotece 92% plików miało dzień kopiowania).
+    // Wywoływane tylko z wątków tła (Skanuj).
+    private static DateTime DataWykonania(FileInfo plik)
+    {
+        try
+        {
+            var w = StorageFile.GetFileFromPathAsync(plik.FullName).AsTask().GetAwaiter().GetResult()
+                .Properties.RetrievePropertiesAsync(KluczeDaty).AsTask().GetAwaiter().GetResult();
+            foreach (var klucz in KluczeDaty)
+                if (w.TryGetValue(klucz, out var v) && v is DateTimeOffset d && d.Year > 1970) // MP4 bez daty ma rok 1904
+                    return d.LocalDateTime;
+        }
+        catch
+        {
+            // Windows nie umie odczytać metadanych — zostaje data modyfikacji.
+        }
+        return plik.LastWriteTime;
+    }
+
+    private void Edytuj_Click(object sender, RoutedEventArgs e) => Edytuj(_widoczne[_indeksPodgladu]);
+    private void Edytuj(ElementGalerii element) => _ = EdytorZdjec.Otworz(element.Sciezka, AppWindow.Id);
+
+    // Podłączony folder, w którym leży plik (null = plik poza biblioteką).
+    private string? FolderBiblioteki(string sciezka)
+        => _ustawienia.Foldery.FirstOrDefault(f => sciezka.StartsWith(f.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase));
 
     // Kopia z edytora zapisana w podłączonym folderze trafia od razu do biblioteki i do podglądu.
     private void DodajZapisanaKopie(string sciezka)
     {
-        var folder = _ustawienia.Foldery.FirstOrDefault(f => sciezka.StartsWith(f.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase));
+        var folder = FolderBiblioteki(sciezka);
         if (folder is null) return;
         _wszystkie.RemoveAll(e => e.Sciezka.Equals(sciezka, StringComparison.OrdinalIgnoreCase)); // nadpisany plik
-        _wszystkie.Add(NowyElement(new FileInfo(sciezka), folder, film: false));
+        var plik = new FileInfo(sciezka);
+        _wszystkie.Add(NowyElement(plik, folder, film: false, plik.LastWriteTime)); // kopia z edytora nie ma EXIF
         OdswiezWidok();
         var indeks = _widoczne.FindIndex(e => e.Sciezka.Equals(sciezka, StringComparison.OrdinalIgnoreCase));
         if (indeks >= 0) _ = PokazWPodgladzie(indeks);
     }
 
-    // Widok (wszystkie / ulubione) + filtr wyszukiwania (nazwa i ścieżka) + sortowanie, jak w PWA.
+    // Widok (wszystkie / ulubione) + sortowanie, jak w PWA.
     private void OdswiezWidok()
     {
-        var fraza = Szukaj.Text.Trim();
-        var wynik = _wszystkie.Where(e => (!_widokUlubionych || _ustawienia.Ulubione.Contains(e.Sciezka))
-            && (fraza.Length == 0 || ElementGalerii.Polski.CompareInfo.IndexOf(e.SciezkaWzgledna, fraza, CompareOptions.IgnoreCase) >= 0));
+        var wynik = _wszystkie.Where(e => !_widokUlubionych || _ustawienia.Ulubione.Contains(e.Sciezka));
         _widoczne = (Sortowanie.SelectedIndex switch
         {
-            1 => wynik.OrderBy(e => e.DataModyfikacji),
+            1 => wynik.OrderBy(e => e.Data),
             2 => wynik.OrderBy(e => e.Nazwa, StringComparer.Create(ElementGalerii.Polski, ignoreCase: true)),
-            _ => wynik.OrderByDescending(e => e.DataModyfikacji),
+            _ => wynik.OrderByDescending(e => e.Data),
         }).ToList();
 
         var trybZaznaczania = Siatka.SelectionMode == ListViewSelectionMode.Multiple;
@@ -247,11 +278,7 @@ public sealed partial class MainWindow : Window
         Naglowek.Visibility = StanPusty.Visibility = Widocznosc(!saPliki);
         PasekNarzedzi.Visibility = Widocznosc(saPliki);
         Siatka.Visibility = Widocznosc(_widoczne.Count > 0);
-        BrakWynikow.Visibility = Widocznosc(saPliki && _widoczne.Count == 0);
-        var brakUlubionych = _widokUlubionych && fraza.Length == 0;
-        BrakWynikowIkona.Glyph = brakUlubionych ? "" : "";
-        BrakWynikowTytul.Text = brakUlubionych ? "Nie masz jeszcze ulubionych" : "Nie znaleziono plików";
-        BrakWynikowOpis.Text = brakUlubionych ? "Kliknij serduszko na zdjęciu, aby dodać je do ulubionych." : "Zmień wyszukiwaną frazę i spróbuj ponownie.";
+        BrakWynikow.Visibility = Widocznosc(saPliki && _widoczne.Count == 0); // tylko puste Ulubione
     }
 
     private void NawWszystkie_Click(object sender, RoutedEventArgs e) => UstawWidok(ulubione: false);
@@ -269,14 +296,6 @@ public sealed partial class MainWindow : Window
 
     private static string Pliki(int n) => $"{n} {(n == 1 ? "plik" : "plików")}";
     private static Visibility Widocznosc(bool widoczny) => widoczny ? Visibility.Visible : Visibility.Collapsed;
-
-    private void Szukaj_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args) => OdswiezWidok();
-
-    private void Szukaj_Skrot(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-    {
-        Szukaj.Focus(FocusState.Keyboard);
-        args.Handled = true;
-    }
 
     private void WyborKolumn_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -351,7 +370,8 @@ public sealed partial class MainWindow : Window
     private void UstawTrybZaznaczania(bool tryb)
     {
         _zaznaczone.Clear();
-        WybierzPliki.Visibility = PoleSortowania.Visibility = PoleSiatki.Visibility = Widocznosc(!tryb);
+        // Liczba plików też znika — na ekranie laptopa (1280 px) wypychała „Gotowe” poza okno; liczbę zaznaczonych widać obok.
+        WybierzPliki.Visibility = PoleSortowania.Visibility = PoleSiatki.Visibility = LiczbaPlikow.Visibility = Widocznosc(!tryb);
         PanelZaznaczania.Visibility = Widocznosc(tryb);
         _odswiezanieSiatki = true;
         Siatka.SelectionMode = tryb ? ListViewSelectionMode.Multiple : ListViewSelectionMode.None;
@@ -403,10 +423,7 @@ public sealed partial class MainWindow : Window
     // głównego pendrive'a („Brak obiektu dla monikera” / „Nazwa folderu jest nieprawidłowa”).
     private async void ZapiszDo_Click(object sender, RoutedEventArgs e)
     {
-        var okno = new Windows.Storage.Pickers.FolderPicker { CommitButtonText = "Zapisz" };
-        okno.FileTypeFilter.Add("*");
-        WinRT.Interop.InitializeWithWindow.Initialize(okno, WinRT.Interop.WindowNative.GetWindowHandle(this));
-        var folder = await okno.PickSingleFolderAsync();
+        var folder = await WybierzFolder("Zapisz");
         if (folder is null) return;
         var pliki = Zaznaczone();
         await Eksportuj(() =>
@@ -415,6 +432,14 @@ public sealed partial class MainWindow : Window
             foreach (var plik in pliki)
                 File.Copy(plik.Sciezka, Path.Combine(folder.Path, WolnaNazwa(plik.Nazwa, zajete, folder.Path)));
         }, $"Zapisano {Pliki(pliki.Count)} w folderze {folder.Path}");
+    }
+
+    private async Task<StorageFolder?> WybierzFolder(string przycisk)
+    {
+        var okno = new Windows.Storage.Pickers.FolderPicker { CommitButtonText = przycisk };
+        okno.FileTypeFilter.Add("*");
+        WinRT.Interop.InitializeWithWindow.Initialize(okno, WinRT.Interop.WindowNative.GetWindowHandle(this));
+        return await okno.PickSingleFolderAsync();
     }
 
     private async void PobierzZip_Click(object sender, RoutedEventArgs e)
@@ -439,11 +464,13 @@ public sealed partial class MainWindow : Window
     }
 
     // Systemowe okno udostępniania Windows (Poczta, Phone Link, Udostępnianie w pobliżu…).
-    private async void Udostepnij_Click(object sender, RoutedEventArgs e)
+    private void Udostepnij_Click(object sender, RoutedEventArgs e) => UdostepnijPliki(Zaznaczone());
+
+    private async void UdostepnijPliki(List<ElementGalerii> pliki)
     {
         try
         {
-            _doUdostepnienia = [.. await Task.WhenAll(Zaznaczone().Select(p => StorageFile.GetFileFromPathAsync(p.Sciezka).AsTask()))];
+            _doUdostepnienia = [.. await Task.WhenAll(pliki.Select(p => StorageFile.GetFileFromPathAsync(p.Sciezka).AsTask()))];
             DataTransferManagerInterop.ShowShareUIForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this));
         }
         catch (Exception ex)
@@ -547,7 +574,8 @@ public sealed partial class MainWindow : Window
             return;
         }
         if (Podglad.Visibility != Visibility.Visible) return;
-        if (e.Key == VirtualKey.Left) PrzejdzO(-1);
+        if (_pokazSlajdow && e.Key == VirtualKey.Escape) ZakonczPokaz(); // Esc kończy pokaz, podgląd zostaje
+        else if (e.Key == VirtualKey.Left) PrzejdzO(-1);
         else if (e.Key == VirtualKey.Right) PrzejdzO(1);
         else return;
         e.Handled = true;
@@ -576,6 +604,9 @@ public sealed partial class MainWindow : Window
         UstawSerce(element);
         WyczyscPodglad();
         Podglad.Visibility = Visibility.Visible;
+        // Pokaz slajdów: zdjęcie co 5 s od pokazania (także po ←/→); film do końca (MediaEnded niżej).
+        _zegarPokazu.Stop();
+        if (_pokazSlajdow && !element.CzyFilm) _zegarPokazu.Start();
 
         if (element.CzyFilm)
         {
@@ -584,6 +615,11 @@ public sealed partial class MainWindow : Window
             // Kodeki Windows (Media Foundation), bez konwersji.
             PodgladFilmu.Source = MediaSource.CreateFromStorageFile(plik);
             PodgladFilmu.Visibility = Visibility.Visible;
+            if (PodgladFilmu.MediaPlayer is { } odtwarzacz && odtwarzacz != _odtwarzacz)
+            {
+                _odtwarzacz = odtwarzacz;
+                odtwarzacz.MediaEnded += (_, _) => DispatcherQueue.TryEnqueue(() => { if (_pokazSlajdow) PrzejdzO(1); });
+            }
             return;
         }
 
@@ -592,7 +628,7 @@ public sealed partial class MainWindow : Window
         var pola = await exif;
         if (numer != _numerPodgladu) return;
         ListaExif.ItemsSource = pola;
-        PasekExif.Visibility = Widocznosc(pola.Count > 0);
+        PasekExif.Visibility = Widocznosc(pola.Count > 0 && !_pokazSlajdow);
     }
 
     // Dekodowanie przez BitmapDecoder: uwzględnia orientację EXIF i pozwala obrócić obraz o 90°
@@ -689,16 +725,19 @@ public sealed partial class MainWindow : Window
         ToolTipService.SetToolTip(PrzyciskUlubione, ulubiony ? "Usuń z ulubionych" : "Dodaj do ulubionych");
     }
 
-    private async void Usun_Click(object sender, RoutedEventArgs e)
+    private void Usun_Click(object sender, RoutedEventArgs e) => Usun(_widoczne[_indeksPodgladu]);
+
+    // Z podglądu albo z menu pliku (wtedy też z siatki).
+    private async void Usun(ElementGalerii element)
     {
-        var element = _widoczne[_indeksPodgladu];
         var potwierdzenie = NoweOkno("Przenieść do Kosza?",
             $"Plik „{element.Nazwa}” zostanie przeniesiony do Kosza Windows. Możesz go stamtąd przywrócić.");
         potwierdzenie.PrimaryButtonText = "Przenieś do Kosza";
         if (await potwierdzenie.ShowAsync() != ContentDialogResult.Primary) return;
 
+        var wPodgladzie = Podglad.Visibility == Visibility.Visible;
         var indeks = _indeksPodgladu;
-        WyczyscPodglad(); // zwalnia plik (film trzyma go otwartym)
+        if (wPodgladzie) WyczyscPodglad(); // zwalnia plik (film trzyma go otwartym)
         try
         {
             FileSystem.DeleteFile(element.Sciezka, UIOption.OnlyErrorDialogs, RecycleOption.SendToRecycleBin);
@@ -706,23 +745,31 @@ public sealed partial class MainWindow : Window
         catch (Exception)
         {
             // Windows pokazał już własny komunikat błędu — wracamy do podglądu pliku.
-            await PokazWPodgladzie(indeks);
+            if (wPodgladzie) await PokazWPodgladzie(indeks);
             return;
         }
 
         _wszystkie.Remove(element);
         if (_ustawienia.Ulubione.Remove(element.Sciezka)) _ustawienia.Zapisz();
         OdswiezWidok();
-        if (_widoczne.Count == 0) Zamknij_Click(sender, e);
+        if (wPodgladzie) await PokazPoZniknieciu(indeks);
+    }
+
+    // Plik z podglądu zniknął z listy: pokazujemy ten, który wskoczył na jego miejsce, albo zamykamy podgląd.
+    private async Task PokazPoZniknieciu(int indeks)
+    {
+        if (_widoczne.Count == 0) Zamknij_Click(this, new RoutedEventArgs());
         else await PokazWPodgladzie(Math.Min(indeks, _widoczne.Count - 1));
     }
 
-    private void Drukuj_Click(object sender, RoutedEventArgs e)
+    private void Drukuj_Click(object sender, RoutedEventArgs e) => Drukuj(_widoczne[_indeksPodgladu]);
+
+    private void Drukuj(ElementGalerii element)
     {
         try
         {
             // Systemowe okno „Drukowanie obrazów”.
-            Process.Start(new ProcessStartInfo(_widoczne[_indeksPodgladu].Sciezka) { UseShellExecute = true, Verb = "print" });
+            Process.Start(new ProcessStartInfo(element.Sciezka) { UseShellExecute = true, Verb = "print" });
         }
         catch (Win32Exception)
         {
@@ -740,6 +787,219 @@ public sealed partial class MainWindow : Window
         DefaultButton = ContentDialogButton.Close,
     };
 
+    // ---------- Menu pliku pod prawym przyciskiem (jak w „Zdjęciach”) ----------
+    // Działa na klikniętym pliku, także w trybie zaznaczania.
+
+    private void Kafelek_RightTapped(object sender, RightTappedRoutedEventArgs e)
+    {
+        if (((FrameworkElement)sender).DataContext is ElementGalerii element) PokazMenu(element, (FrameworkElement)sender, e);
+    }
+
+    private void Podglad_RightTapped(object sender, RightTappedRoutedEventArgs e)
+    {
+        ZakonczPokaz();
+        PokazMenu(_widoczne[_indeksPodgladu], (FrameworkElement)sender, e);
+    }
+
+    private void PokazMenu(ElementGalerii element, FrameworkElement cel, RightTappedRoutedEventArgs e)
+    {
+        _elementMenu = element;
+        MenuOtworz.Visibility = Widocznosc(Podglad.Visibility != Visibility.Visible);
+        MenuEdytuj.Visibility = MenuDrukuj.Visibility = Widocznosc(!element.CzyFilm);
+        MenuUlubione.Text = _ustawienia.Ulubione.Contains(element.Sciezka) ? "Usuń z ulubionych" : "Dodaj do ulubionych";
+        MenuPliku.ShowAt(cel, e.GetPosition(cel));
+        e.Handled = true;
+    }
+
+    private void MenuOtworz_Click(object sender, RoutedEventArgs e) => _ = PokazWPodgladzie(_widoczne.IndexOf(_elementMenu!));
+    private void MenuEdytuj_Click(object sender, RoutedEventArgs e) => Edytuj(_elementMenu!);
+    private void MenuPokaz_Click(object sender, RoutedEventArgs e) => RozpocznijPokaz(_widoczne.IndexOf(_elementMenu!));
+    private void MenuDrukuj_Click(object sender, RoutedEventArgs e) => Drukuj(_elementMenu!);
+    private void MenuUdostepnij_Click(object sender, RoutedEventArgs e) => UdostepnijPliki([_elementMenu!]);
+    private void MenuUsun_Click(object sender, RoutedEventArgs e) => Usun(_elementMenu!);
+    private void MenuEksplorator_Click(object sender, RoutedEventArgs e)
+        => Process.Start("explorer.exe", $"/select,\"{_elementMenu!.Sciezka}\"");
+
+    // Clipchamp (aplikacja Microsoftu, osobna instalacja). Film otwiera się w nim od razu — Clipchamp jest
+    // skojarzony z plikami wideo; zdjęć nie przyjmuje w ten sposób, więc dla zdjęcia tylko go uruchamiamy.
+    // Brak Clipchampa → jego strona w Microsoft Store.
+    private async void MenuClipchamp_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var uruchomiono = _elementMenu!.CzyFilm
+                ? await Launcher.LaunchFileAsync(await StorageFile.GetFileFromPathAsync(_elementMenu.Sciezka),
+                    new LauncherOptions { TargetApplicationPackageFamilyName = "Clipchamp.Clipchamp_yxz26nhyzhsrt" })
+                : await Launcher.LaunchUriAsync(new Uri("ms-clipchamp:"));
+            if (!uruchomiono) await Launcher.LaunchUriAsync(new Uri("ms-windows-store://pdp/?ProductId=9P1J8S7CCWWT"));
+        }
+        catch (Exception ex)
+        {
+            PokazKomunikat($"Nie udało się otworzyć Clipchamp: {ex.Message}", InfoBarSeverity.Error);
+        }
+    }
+
+    private void MenuUlubione_Click(object sender, RoutedEventArgs e)
+    {
+        PrzelaczUlubione(_elementMenu!);
+        if (Podglad.Visibility == Visibility.Visible)
+        {
+            _ulubioneZmienione = true;
+            UstawSerce(_elementMenu!);
+        }
+        else if (_widokUlubionych) OdswiezWidok();
+    }
+
+    // Sam plik do schowka — Ctrl+V w Eksploratorze wkleja kopię.
+    private async void MenuKopiuj_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var dane = new DataPackage();
+            dane.SetStorageItems([await StorageFile.GetFileFromPathAsync(_elementMenu!.Sciezka)]);
+            Clipboard.SetContent(dane);
+        }
+        catch (Exception ex)
+        {
+            PokazKomunikat($"Nie udało się skopiować pliku: {ex.Message}", InfoBarSeverity.Error);
+        }
+    }
+
+    private void MenuKopiujSciezke_Click(object sender, RoutedEventArgs e)
+    {
+        var dane = new DataPackage();
+        dane.SetText(_elementMenu!.Sciezka);
+        Clipboard.SetContent(dane);
+    }
+
+    private void MenuKopiujDo_Click(object sender, RoutedEventArgs e) => KopiujLubPrzenies(_elementMenu!, przenies: false);
+    private void MenuPrzeniesDo_Click(object sender, RoutedEventArgs e) => KopiujLubPrzenies(_elementMenu!, przenies: true);
+
+    // Kopia/przeniesienie do wskazanego folderu; zajęta nazwa dostaje „(2)”, „(3)”… jak przy eksporcie.
+    private async void KopiujLubPrzenies(ElementGalerii element, bool przenies)
+    {
+        var folder = await WybierzFolder(przenies ? "Przenieś" : "Kopiuj");
+        if (folder is null) return;
+        if (przenies && string.Equals(folder.Path.TrimEnd('\\'), Path.GetDirectoryName(element.Sciezka), StringComparison.OrdinalIgnoreCase))
+            return; // ten sam folder — nie ma czego przenosić
+        var cel = Path.Combine(folder.Path, WolnaNazwa(element.Nazwa, [], folder.Path));
+        if (przenies)
+        {
+            if (await PrzeniesPlik(element, cel)) PokazKomunikat($"Przeniesiono {element.Nazwa} do folderu {folder.Path}", InfoBarSeverity.Success);
+            return;
+        }
+        try
+        {
+            await Task.Run(() => File.Copy(element.Sciezka, cel));
+        }
+        catch (Exception ex)
+        {
+            PokazKomunikat($"Nie udało się skopiować: {ex.Message}", InfoBarSeverity.Error);
+            return;
+        }
+        if (FolderBiblioteki(cel) is { } biblioteka) // kopia w podłączonym folderze od razu w siatce
+        {
+            _wszystkie.Add(NowyElement(new FileInfo(cel), biblioteka, element.CzyFilm, element.Data));
+            OdswiezWidok();
+        }
+        PokazKomunikat($"Skopiowano {element.Nazwa} do folderu {folder.Path}", InfoBarSeverity.Success);
+    }
+
+    private async void MenuZmienNazwe_Click(object sender, RoutedEventArgs e)
+    {
+        var element = _elementMenu!;
+        var rozszerzenie = Path.GetExtension(element.Nazwa);
+        var pole = new TextBox { Text = Path.GetFileNameWithoutExtension(element.Nazwa) };
+        var blad = new TextBlock
+        {
+            TextWrapping = TextWrapping.Wrap,
+            Visibility = Visibility.Collapsed,
+            Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["SystemFillColorCriticalBrush"],
+        };
+        var okno = NoweOkno("Zmień nazwę", "");
+        okno.Content = new StackPanel { Spacing = 8, Width = 400, Children = { pole, blad } };
+        okno.PrimaryButtonText = "Zmień nazwę";
+        okno.DefaultButton = ContentDialogButton.Primary;
+        okno.Opened += (_, _) =>
+        {
+            pole.Focus(FocusState.Programmatic);
+            pole.SelectAll();
+        };
+        var nowa = element.Sciezka;
+        okno.PrimaryButtonClick += (_, args) =>
+        {
+            var nazwa = pole.Text.Trim() + rozszerzenie;
+            nowa = Path.Combine(Path.GetDirectoryName(element.Sciezka)!, nazwa);
+            var problem = pole.Text.Trim().Length == 0 ? "Nazwa nie może być pusta."
+                : nazwa.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ? "Nazwa nie może zawierać znaków \\ / : * ? \" < > |"
+                // Sama zmiana wielkości liter tego samego pliku jest dozwolona.
+                : File.Exists(nowa) && !nowa.Equals(element.Sciezka, StringComparison.OrdinalIgnoreCase) ? $"Plik „{nazwa}” już istnieje w tym folderze."
+                : null;
+            if (problem is null) return;
+            blad.Text = problem;
+            blad.Visibility = Visibility.Visible;
+            args.Cancel = true;
+        };
+        if (await okno.ShowAsync() != ContentDialogResult.Primary || nowa == element.Sciezka) return;
+        await PrzeniesPlik(element, nowa);
+    }
+
+    // Zmiana nazwy albo przeniesienie. Plik zostaje w bibliotece, jeśli nowa ścieżka jest w podłączonym folderze.
+    private async Task<bool> PrzeniesPlik(ElementGalerii element, string nowa)
+    {
+        var wPodgladzie = Podglad.Visibility == Visibility.Visible;
+        var indeks = _indeksPodgladu;
+        if (wPodgladzie) WyczyscPodglad(); // film trzyma plik otwarty
+        try
+        {
+            await Task.Run(() => File.Move(element.Sciezka, nowa)); // przeniesienie na inny dysk to kopiowanie
+        }
+        catch (Exception ex)
+        {
+            PokazKomunikat($"Nie udało się: {ex.Message}", InfoBarSeverity.Error);
+            if (wPodgladzie) await PokazWPodgladzie(indeks);
+            return false;
+        }
+
+        var folder = FolderBiblioteki(nowa);
+        _wszystkie.Remove(element);
+        if (folder is not null) _wszystkie.Add(NowyElement(new FileInfo(nowa), folder, element.CzyFilm, element.Data));
+        if (_ustawienia.Ulubione.Remove(element.Sciezka))
+        {
+            if (folder is not null) _ustawienia.Ulubione.Add(nowa);
+            _ustawienia.Zapisz();
+        }
+        OdswiezWidok();
+        if (!wPodgladzie) return true;
+        var nowyIndeks = _widoczne.FindIndex(e => e.Sciezka.Equals(nowa, StringComparison.OrdinalIgnoreCase));
+        if (nowyIndeks >= 0) await PokazWPodgladzie(nowyIndeks);
+        else await PokazPoZniknieciu(indeks);
+        return true;
+    }
+
+    // ---------- Pokaz slajdów ----------
+    // Pełny ekran bez pasków; zdjęcie co 5 s, film do końca (PokazWPodgladzie). Esc, klik albo prawy klik kończy.
+
+    private void RozpocznijPokaz(int indeks)
+    {
+        _pokazSlajdow = true;
+        PasekPodgladu.Visibility = PrzyciskPoprzedni.Visibility = PrzyciskNastepny.Visibility = Visibility.Collapsed;
+        AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
+        _ = PokazWPodgladzie(indeks);
+    }
+
+    private void ZakonczPokaz()
+    {
+        if (!_pokazSlajdow) return;
+        _pokazSlajdow = false;
+        _zegarPokazu.Stop();
+        PasekPodgladu.Visibility = PrzyciskPoprzedni.Visibility = PrzyciskNastepny.Visibility = Visibility.Visible;
+        PasekExif.Visibility = Widocznosc(PrzewijanieZdjecia.Visibility == Visibility.Visible && ListaExif.Items.Count > 0);
+        AppWindow.SetPresenter(AppWindowPresenterKind.Default);
+    }
+
+    private void ObszarPodgladu_Tapped(object sender, TappedRoutedEventArgs e) => ZakonczPokaz();
+
     // Zoom: ScrollViewer (także Ctrl + kółko) zsynchronizowany z suwakiem 100–400%.
     private void PrzewijanieZdjecia_SizeChanged(object sender, SizeChangedEventArgs e)
     {
@@ -749,8 +1009,55 @@ public sealed partial class MainWindow : Window
 
     private void PrzewijanieZdjecia_ViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
     {
-        if (!e.IsIntermediate) SuwakPowiekszenia.Value = Math.Round(PrzewijanieZdjecia.ZoomFactor * 100);
+        if (e.IsIntermediate) return;
+        SuwakPowiekszenia.Value = Math.Round(PrzewijanieZdjecia.ZoomFactor * 100);
+        RamkaZdjecia.Raczka = PrzewijanieZdjecia.ZoomFactor > 1.001f;
     }
+
+    // Kółko: powiększanie względem punktu pod kursorem, w krokach suwaka (co 10%).
+    private void Ramka_PointerWheelChanged(object sender, PointerRoutedEventArgs e)
+    {
+        e.Handled = true; // zamiast przewijania ScrollViewera
+        var sv = PrzewijanieZdjecia;
+        var punkt = e.GetCurrentPoint(sv);
+        var zabki = punkt.Properties.MouseWheelDelta / 120.0;
+        var z = (float)(Math.Clamp(Math.Round(sv.ZoomFactor * Math.Pow(1.2, zabki) * 10), 10, 40) / 10);
+        if (Math.Abs(z - sv.ZoomFactor) < 0.001f) return;
+        var p = punkt.Position;
+        var x = (sv.HorizontalOffset + p.X) / sv.ZoomFactor;
+        var y = (sv.VerticalOffset + p.Y) / sv.ZoomFactor;
+        sv.ChangeView(x * z - p.X, y * z - p.Y, z, disableAnimation: true);
+    }
+
+    // Przeciąganie myszą powiększonego zdjęcia (dotyk przesuwa sam ScrollViewer).
+    private Windows.Foundation.Point? _startPrzesuwania;
+    private double _startH, _startV;
+
+    private void Ramka_PointerPressed(object sender, PointerRoutedEventArgs e)
+    {
+        var punkt = e.GetCurrentPoint(PrzewijanieZdjecia);
+        if (e.Pointer.PointerDeviceType != Microsoft.UI.Input.PointerDeviceType.Mouse
+            || !punkt.Properties.IsLeftButtonPressed || PrzewijanieZdjecia.ZoomFactor <= 1.001f) return;
+        _startPrzesuwania = punkt.Position;
+        _startH = PrzewijanieZdjecia.HorizontalOffset;
+        _startV = PrzewijanieZdjecia.VerticalOffset;
+        RamkaZdjecia.CapturePointer(e.Pointer);
+    }
+
+    private void Ramka_PointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (_startPrzesuwania is not { } start) return;
+        var p = e.GetCurrentPoint(PrzewijanieZdjecia).Position;
+        PrzewijanieZdjecia.ChangeView(_startH - (p.X - start.X), _startV - (p.Y - start.Y), null, disableAnimation: true);
+    }
+
+    private void Ramka_PointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        _startPrzesuwania = null;
+        RamkaZdjecia.ReleasePointerCapture(e.Pointer);
+    }
+
+    private void Ramka_PointerCaptureLost(object sender, PointerRoutedEventArgs e) => _startPrzesuwania = null;
 
     private void SuwakPowiekszenia_ValueChanged(object sender, RangeBaseValueChangedEventArgs e)
     {
@@ -780,5 +1087,15 @@ public sealed partial class MainWindow : Window
         PodgladZdjecia.Source = null;
         PrzewijanieZdjecia.Visibility = Visibility.Collapsed;
         PasekExif.Visibility = Visibility.Collapsed;
+    }
+}
+
+// Ramka zdjęcia w podglądzie; ProtectedCursor jest chroniony, więc kursor ustawiamy z podklasy.
+public sealed partial class RamkaZdjecia : Grid
+{
+    public bool Raczka
+    {
+        set => ProtectedCursor = Microsoft.UI.Input.InputSystemCursor.Create(
+            value ? Microsoft.UI.Input.InputSystemCursorShape.Hand : Microsoft.UI.Input.InputSystemCursorShape.Arrow);
     }
 }

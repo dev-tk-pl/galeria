@@ -5,7 +5,7 @@
     <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
     <RootNamespace>GaleriaDesktop</RootNamespace>
     <AssemblyName>Galeria</AssemblyName>
-    <Version>0.0.5</Version>
+    <Version>0.0.6</Version>
     <ApplicationIcon>Assets\Galeria.ico</ApplicationIcon>
     <Platforms>x64</Platforms>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
