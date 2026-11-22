@@ -386,11 +386,15 @@
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" Spacing="7">
-                    <Ellipse Width="7" Height="7" Fill="{ThemeResource SystemFillColorSuccessBrush}" VerticalAlignment="Center" />
-                    <TextBlock Text="Zdjęcia pozostają na Twoim urządzeniu" Style="{StaticResource CaptionTextBlockStyle}"
+                <Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                        <Ellipse Width="7" Height="7" Fill="{ThemeResource SystemFillColorSuccessBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="Zdjęcia pozostają na Twoim urządzeniu" Style="{StaticResource CaptionTextBlockStyle}"
+                                   Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
+                    </StackPanel>
+                    <TextBlock x:Name="WersjaAplikacji" HorizontalAlignment="Right" Style="{StaticResource CaptionTextBlockStyle}"
                                Foreground="{ThemeResource TextFillColorTertiaryBrush}" />
-                </StackPanel>
+                </Grid>
             </StackPanel>
         </ContentDialog>
 

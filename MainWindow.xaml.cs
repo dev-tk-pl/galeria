@@ -104,6 +104,8 @@ public sealed partial class MainWindow : Window
     private async void Ustawienia_Click(object sender, RoutedEventArgs e)
     {
         OknoUstawien.XamlRoot = Content.XamlRoot;
+        // Wersja z <Version> w GaleriaDesktop.csproj
+        WersjaAplikacji.Text = $"Wersja: {typeof(App).Assembly.GetName().Version!.ToString(3)}";
         await OknoUstawien.ShowAsync();
     }
 
