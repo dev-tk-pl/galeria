@@ -57,6 +57,42 @@ nie jest potrzebny). Ustawienia są w profilu `Properties\PublishProfiles\JedenP
 
 Testów automatycznych na razie nie ma. Jedyną automatyczną weryfikacją jest `dotnet build`.
 
+## Wydanie nowej wersji
+
+Aktualizacje idą przez [Velopack](https://velopack.io) i GitHub Releases. Sam `git push` niczego nie
+aktualizuje — zainstalowana Galeria widzi nową wersję dopiero po wysłaniu wydania skryptem `wydanie.ps1`.
+Potrzebne: narzędzie `vpk` (`dotnet tool install -g vpk`) i token GitHuba z prawem zapisu do repozytorium
+(klasyczny z zakresem `repo` albo fine-grained z **Contents: Read and write**).
+
+Przykład dla wersji 0.0.6:
+
+1. W `GaleriaDesktop.csproj` zmień `<Version>0.0.5</Version>` na `<Version>0.0.6</Version>`.
+2. `dotnet build` — musi przejść bez błędów.
+3. Commit i `git push` (kod w repozytorium).
+4. Wydanie:
+
+   ```powershell
+   $env:GITHUB_TOKEN = 'ghp_...'   # tylko w tej sesji PowerShella
+   .\wydanie.ps1 -Wyslij
+   ```
+
+   Skrypt kompiluje aplikację, w folderze `Releases\` tworzy `GaleriaDesktop-0.0.6-full.nupkg`,
+   `GaleriaDesktop-0.0.6-delta.nupkg` (różnica względem 0.0.5, dlatego nie kasuj `Releases\`),
+   instalator `GaleriaDesktop-win-Setup.exe` i `releases.win.json`, a potem zakłada na GitHubie
+   wydanie **Galeria 0.0.6** z tagiem `v0.0.6` i wysyła te pliki.
+   Bez `-Wyslij` tylko buduje paczki lokalnie (do sprawdzenia przed publikacją).
+5. Sprawdź na [github.com/dev-tk-pl/galeria/releases](https://github.com/dev-tk-pl/galeria/releases),
+   że wydanie 0.0.6 jest na górze (opublikowane, nie „Draft”) i ma pliki z punktu 4.
+6. Uruchom **zainstalowaną** Galerię (menu Start albo skrót na pulpicie — nie `dotnet run`, bo wersja
+   z `bin\` nie jest zainstalowana i nie sprawdza aktualizacji):
+   - **Aktualizacje: Instaluj automatycznie** → okienko „Sprawdzanie dostępności aktualizacji…”, pobieranie,
+     ponowne uruchomienie. Po starcie w **Ustawieniach** powinna być wersja 0.0.6.
+   - **Aktualizacje: Tylko informuj** → na górnym pasku pojawia się napis „Dostępna wersja 0.0.6”. Żeby ją
+     zainstalować, przełącz na **Instaluj automatycznie** i uruchom Galerię ponownie.
+
+Nowe osoby instalują aplikację z `GaleriaDesktop-win-Setup.exe` z najnowszego wydania (instalacja
+w `%LocalAppData%`, bez uprawnień administratora).
+
 ## Jak używać
 
 Układ okna jest wzorowany na PWA: pasek boczny (Wszystkie zdjęcia, Ulubione, Wybrane foldery),
