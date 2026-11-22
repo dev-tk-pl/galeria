@@ -11,6 +11,7 @@ public class Ustawienia
     public string Motyw { get; set; } = "Systemowy"; // Systemowy / Jasny / Ciemny
     public int Kolumny { get; set; }                 // 0 = Domyślna (zależnie od szerokości okna)
     public HashSet<string> Ulubione { get; set; } = []; // pełne ścieżki plików
+    public bool Autoaktualizacja { get; set; } = true;  // false = tylko informacja o nowej wersji
 
     // Stary format (jeden folder) — przy wczytaniu przenoszony do Foldery.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

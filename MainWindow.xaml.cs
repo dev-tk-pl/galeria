@@ -10,6 +10,8 @@ using Windows.Graphics.Imaging;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.Windows.Storage.Pickers;
+using Velopack;
+using Velopack.Sources;
 using Windows.Media.Core;
 using Windows.Storage;
 using Windows.Storage.FileProperties;
@@ -42,9 +44,47 @@ public sealed partial class MainWindow : Window
         SuwakPowiekszenia.Value = 100;
         SuwakPowiekszenia.ValueChanged += SuwakPowiekszenia_ValueChanged;
         EdytorZdjec.Zapisano += DodajZapisanaKopie;
+        PrzelacznikAktualizacji.IsOn = _ustawienia.Autoaktualizacja;
+        PrzelacznikAktualizacji.Toggled += (_, _) =>
+        {
+            _ustawienia.Autoaktualizacja = PrzelacznikAktualizacji.IsOn;
+            _ustawienia.Zapisz();
+        };
 
         // Po restarcie zapamiętane foldery wczytują się same.
         _ = WczytajBiblioteke();
+        _ = SprawdzAktualizacje();
+    }
+
+    // Jeśli na GitHub Releases jest nowsza wersja: przy włączonej autoaktualizacji pobierz, zainstaluj
+    // i uruchom ponownie; przy wyłączonej tylko pokaż informację na górnym pasku.
+    private async Task SprawdzAktualizacje()
+    {
+        try
+        {
+            var mgr = new UpdateManager(new GithubSource("https://github.com/dev-tk-pl/galeria", null, false));
+            if (!mgr.IsInstalled) return; // dotnet run albo exe spoza instalatora
+            var nowa = await mgr.CheckForUpdatesAsync();
+            if (nowa == null) return;
+
+            var wersja = nowa.TargetFullRelease.Version;
+            StanAktualizacji.Visibility = Visibility.Visible;
+            KoloAktualizacji.Visibility = Widocznosc(_ustawienia.Autoaktualizacja);
+            if (!_ustawienia.Autoaktualizacja)
+            {
+                TekstAktualizacji.Text = $"Dostępna wersja {wersja}";
+                return;
+            }
+            TekstAktualizacji.Text = $"Pobieranie wersji {wersja}… nie zamykaj okna";
+            await mgr.DownloadUpdatesAsync(nowa);
+            mgr.ApplyUpdatesAndRestart(nowa);
+        }
+        catch (Exception ex)
+        {
+            // Brak sieci itp. — spróbujemy przy następnym uruchomieniu
+            StanAktualizacji.Visibility = Visibility.Collapsed;
+            Debug.WriteLine($"Aktualizacja: {ex.Message}");
+        }
     }
 
     private async void DodajFolder_Click(object sender, RoutedEventArgs e)

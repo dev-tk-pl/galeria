@@ -11,7 +11,7 @@ $wersja = ([xml](Get-Content GaleriaDesktop.csproj)).Project.PropertyGroup.Versi
 dotnet publish -c Release --self-contained -p:OutputPath=bin\Velopack\ -p:EnableMsixTooling=true -o bin\velopack-publish
 if ($LASTEXITCODE) { exit 1 }
 
-vpk pack -u GaleriaDesktop -v $wersja -p bin\velopack-publish -e Galeria.exe --packTitle Galeria -o Releases
+vpk pack -u GaleriaDesktop -v $wersja -r win-x64 -p bin\velopack-publish -e Galeria.exe --packTitle Galeria -o Releases
 if ($LASTEXITCODE) { exit 1 }
 
 if ($Wyslij) {

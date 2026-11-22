@@ -9,7 +9,8 @@ Dzięki temu działają też stare formaty, których przeglądarki nie obsługuj
 (MJPEG + PCM) i 3GP z telefonów (MPEG-4 + AMR-NB).
 
 > Status: prototyp. Działa wybór folderu, siatka miniatur, zapamiętanie folderu i podgląd zdjęć/filmów.
-> Aktualizacje (Velopack + GitHub Releases) są jeszcze w planach.
+> Aktualizacje (Velopack + GitHub Releases): przy starcie aplikacja sprawdza nową wersję i sama ją instaluje
+> albo, po wyłączeniu w Ustawieniach, tylko o niej informuje.
 
 ## Wymagania
 
@@ -63,7 +64,8 @@ pasek narzędzi nad siatką, karty z nazwą i datą pliku. Kolory są brane z Wi
 1. Kliknij **Dodaj folder** i wskaż folder ze zdjęciami (np. `D:\Zdjęcia`). Skanowane są też
    wszystkie podfoldery. Można podłączyć kilka folderów.
 2. **Ustawienia** (⚙ albo karta **Wybrane foldery**): motyw Systemowy / Jasny / Ciemny, lista
-   folderów z liczbą plików, **Odłącz** (pliki zostają na dysku), **Dodaj folder**, **Odłącz wszystkie**.
+   folderów z liczbą plików, **Odłącz** (pliki zostają na dysku), **Dodaj folder**, **Odłącz wszystkie**,
+   przełącznik **Aktualizacje** (Instaluj automatycznie / Tylko informuj) i numer wersji.
 3. **Szukaj** (albo **Ctrl+K**) filtruje po nazwie pliku i ścieżce. **Sortuj**: Najnowsze, Najstarsze,
    Nazwa. **Siatka**: Domyślna, 3, 5 albo 7 kolumn.
 4. Kliknij kafelek, żeby otworzyć podgląd:
@@ -85,7 +87,7 @@ pasek narzędzi nad siatką, karty z nazwą i datą pliku. Kolory są brane z Wi
    - **Opcje zapisywania** → zapis kopii JPG/PNG w pełnej rozdzielczości (okno zapisu podpowiada folder
      oryginału i nazwę „…-edytowane”). Oryginał zostaje bez zmian. **Anuluj** albo **Esc** zamyka edytor.
 
-Foldery, motyw, liczba kolumn i ulubione są zapamiętywane.
+Foldery, motyw, liczba kolumn, ulubione i ustawienie aktualizacji są zapamiętywane.
 
 ### Obsługiwane pliki
 
@@ -99,7 +101,7 @@ Pozostałe pliki (np. `NEF`, `PSD`) są pomijane. Czy film się odtworzy, zależ
 `%LOCALAPPDATA%\Galeria\ustawienia.json`, np.:
 
 ```json
-{"Foldery":["D:\\Zdjęcia"],"Motyw":"Systemowy","Kolumny":0,"Ulubione":["D:\\Zdjęcia\\a.jpg"]}
+{"Foldery":["D:\\Zdjęcia"],"Motyw":"Systemowy","Kolumny":0,"Ulubione":["D:\\Zdjęcia\\a.jpg"],"Autoaktualizacja":true}
 ```
 
 Usunięcie tego pliku przywraca stan „pierwsze uruchomienie”. Stary format (`OstatniFolder`)
