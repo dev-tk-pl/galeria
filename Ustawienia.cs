@@ -12,6 +12,7 @@ public class Ustawienia
     public int Kolumny { get; set; }                 // 0 = Domyślna (zależnie od szerokości okna)
     public HashSet<string> Ulubione { get; set; } = []; // pełne ścieżki plików
     public bool Autoaktualizacja { get; set; } = true;  // false = tylko informacja o nowej wersji
+    public string? KolorPrzewodni { get; set; }         // „#RRGGBB”; null = kolor domyślny aplikacji
 
     // Stary format (jeden folder) — przy wczytaniu przenoszony do Foldery.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

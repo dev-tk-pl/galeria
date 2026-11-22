@@ -48,6 +48,57 @@ public class ElementGalerii : INotifyPropertyChanged
         }
     }
 
+    // Serce na kafelku — ustawiane z listy ulubionych w Ustawieniach.
+    private bool _ulubiony;
+    public bool Ulubiony
+    {
+        get => _ulubiony;
+        set
+        {
+            _ulubiony = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Ulubiony)));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WidocznoscSerca)));
+        }
+    }
+
+    // Kursor nad kafelkiem — serce widać po najechaniu albo zawsze przy ulubionym (jak w PWA).
+    private bool _najechany;
+    public bool Najechany
+    {
+        get => _najechany;
+        set
+        {
+            _najechany = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WidocznoscSerca)));
+        }
+    }
+    public Visibility WidocznoscSerca => Ulubiony || Najechany ? Visibility.Visible : Visibility.Collapsed;
+
+    // Własne pole wyboru na kafelku (wbudowanego w GridView nie da się odsunąć od rogu).
+    private bool _trybZaznaczania;
+    public bool TrybZaznaczania
+    {
+        get => _trybZaznaczania;
+        set
+        {
+            _trybZaznaczania = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WidocznoscPolaWyboru)));
+        }
+    }
+    public Visibility WidocznoscPolaWyboru => TrybZaznaczania ? Visibility.Visible : Visibility.Collapsed;
+
+    private bool _zaznaczony;
+    public bool Zaznaczony
+    {
+        get => _zaznaczony;
+        set
+        {
+            _zaznaczony = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(WidocznoscZaznaczenia)));
+        }
+    }
+    public Visibility WidocznoscZaznaczenia => Zaznaczony ? Visibility.Visible : Visibility.Collapsed;
+
     public event PropertyChangedEventHandler? PropertyChanged;
 }
 

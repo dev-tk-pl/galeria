@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO.Compression;
+using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -12,6 +14,7 @@ using Microsoft.UI.Xaml.Media.Imaging;
 using Microsoft.Windows.Storage.Pickers;
 using Velopack;
 using Velopack.Sources;
+using Windows.ApplicationModel.DataTransfer;
 using Windows.Media.Core;
 using Windows.Storage;
 using Windows.Storage.FileProperties;
@@ -30,10 +33,16 @@ public sealed partial class MainWindow : Window
     private bool _widokUlubionych;
     private bool _ulubioneZmienione;
     private ItemsWrapGrid? _panelSiatki;
+    private readonly HashSet<string> _zaznaczone = new(StringComparer.OrdinalIgnoreCase); // ścieżki zaznaczonych plików
+    private bool _odswiezanieSiatki; // podmiana ItemsSource — ignorujemy zdarzenia SelectionChanged
+    private bool _eksport;
+    private List<StorageFile> _doUdostepnienia = [];
 
     public MainWindow()
     {
+        UstawKolorPrzewodni(_ustawienia.KolorPrzewodni); // przed InitializeComponent, żeby XAML od razu wziął kolor
         InitializeComponent();
+        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "Galeria.ico"));
         Sortowanie.SelectedIndex = 0;
         Sortowanie.SelectionChanged += (_, _) => OdswiezWidok();
         WyborKolumn.SelectedIndex = _ustawienia.Kolumny switch { 3 => 1, 5 => 2, 7 => 3, _ => 0 };
@@ -49,6 +58,15 @@ public sealed partial class MainWindow : Window
         {
             _ustawienia.Autoaktualizacja = PrzelacznikAktualizacji.IsOn;
             _ustawienia.Zapisz();
+        };
+        OknoKoloru.Opening += (_, _) => WyborKoloru.Color = (Windows.UI.Color)Application.Current.Resources["SystemAccentColor"];
+
+        // Udostępnianie: systemowe okno Windows dostaje pliki przygotowane w Udostepnij_Click.
+        var okno = WinRT.Interop.WindowNative.GetWindowHandle(this);
+        DataTransferManagerInterop.GetForWindow(okno).DataRequested += (_, args) =>
+        {
+            args.Request.Data.Properties.Title = $"Zdjęcia z Galerii ({_doUdostepnienia.Count})";
+            args.Request.Data.SetStorageItems(_doUdostepnienia);
         };
 
         // Po restarcie zapamiętane foldery wczytują się same.
@@ -218,7 +236,19 @@ public sealed partial class MainWindow : Window
             _ => wynik.OrderByDescending(e => e.DataModyfikacji),
         }).ToList();
 
+        var trybZaznaczania = Siatka.SelectionMode == ListViewSelectionMode.Multiple;
+        foreach (var element in _widoczne)
+        {
+            element.Ulubiony = _ustawienia.Ulubione.Contains(element.Sciezka);
+            element.TrybZaznaczania = trybZaznaczania;
+            element.Zaznaczony = _zaznaczone.Contains(element.Sciezka);
+        }
+        _odswiezanieSiatki = true;
         Siatka.ItemsSource = _widoczne;
+        if (Siatka.SelectionMode == ListViewSelectionMode.Multiple) // zaznaczenie przeżywa wyszukiwanie i sortowanie
+            foreach (var element in _widoczne.Where(e => _zaznaczone.Contains(e.Sciezka))) Siatka.SelectedItems.Add(element);
+        _odswiezanieSiatki = false;
+        OdswiezZaznaczenie();
         LiczbaPlikow.Text = Pliki(_widoczne.Count);
         NotkaDolna.Text = $"Przeglądasz lokalne pliki · {Pliki(_wszystkie.Count)} multimedialnych w bibliotece";
         LicznikWszystkich.Text = _wszystkie.Count.ToString();
@@ -282,7 +312,7 @@ public sealed partial class MainWindow : Window
         if (_panelSiatki is null || szerokosc <= 0) return;
         var kolumny = _ustawienia.Kolumny > 0 ? _ustawienia.Kolumny : szerokosc >= 900 ? 5 : szerokosc >= 600 ? 4 : 3;
         _panelSiatki.ItemWidth = Math.Floor(szerokosc / kolumny);
-        _panelSiatki.ItemHeight = Math.Floor((_panelSiatki.ItemWidth - 17) * 3 / 4) + 9 + 40 + 22; // miniatura + odstęp + podpis + margines
+        _panelSiatki.ItemHeight = Math.Floor((_panelSiatki.ItemWidth - 17) * 3 / 4) + 9 + 46 + 22; // miniatura + odstęp + podpis + margines
     }
 
     // Miniatury ładowane leniwie, tylko dla widocznych kafelków; zwalniane przy recyklingu kontenera.
@@ -322,6 +352,196 @@ public sealed partial class MainWindow : Window
 
     private void Siatka_ItemClick(object sender, ItemClickEventArgs e)
         => _ = PokazWPodgladzie(_widoczne.IndexOf((ElementGalerii)e.ClickedItem));
+
+    // ---------- Zaznaczanie i eksport (jak w PWA) ----------
+
+    private void WybierzPliki_Click(object sender, RoutedEventArgs e) => UstawTrybZaznaczania(true);
+    private void Gotowe_Click(object sender, RoutedEventArgs e) => UstawTrybZaznaczania(false);
+
+    // W trybie zaznaczania kafelki mają pola wyboru, a kliknięcie zaznacza zamiast otwierać podgląd.
+    private void UstawTrybZaznaczania(bool tryb)
+    {
+        _zaznaczone.Clear();
+        WybierzPliki.Visibility = PoleSortowania.Visibility = PoleSiatki.Visibility = Widocznosc(!tryb);
+        PanelZaznaczania.Visibility = Widocznosc(tryb);
+        _odswiezanieSiatki = true;
+        Siatka.SelectionMode = tryb ? ListViewSelectionMode.Multiple : ListViewSelectionMode.None;
+        _odswiezanieSiatki = false;
+        Siatka.IsItemClickEnabled = !tryb;
+        foreach (var element in _widoczne)
+        {
+            element.TrybZaznaczania = tryb;
+            element.Zaznaczony = false;
+        }
+        OdswiezZaznaczenie();
+    }
+
+    private void Siatka_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_odswiezanieSiatki) return;
+        foreach (ElementGalerii element in e.AddedItems)
+        {
+            _zaznaczone.Add(element.Sciezka);
+            element.Zaznaczony = true;
+        }
+        foreach (ElementGalerii element in e.RemovedItems)
+        {
+            _zaznaczone.Remove(element.Sciezka);
+            element.Zaznaczony = false;
+        }
+        OdswiezZaznaczenie();
+    }
+
+    private List<ElementGalerii> Zaznaczone() => _wszystkie.Where(e => _zaznaczone.Contains(e.Sciezka)).ToList();
+    private bool WszystkieWidoczneZaznaczone() => _widoczne.Count > 0 && _widoczne.All(e => _zaznaczone.Contains(e.Sciezka));
+
+    private void OdswiezZaznaczenie()
+    {
+        var n = Zaznaczone().Count;
+        LiczbaZaznaczonych.Text = $"{n} zazn.";
+        ZapiszDo.IsEnabled = PobierzZip.IsEnabled = Udostepnij.IsEnabled = n > 0 && !_eksport;
+        ZaznaczWidoczne.Content = WszystkieWidoczneZaznaczone() ? "Odznacz widoczne" : "Zaznacz widoczne";
+    }
+
+    private void ZaznaczWidoczne_Click(object sender, RoutedEventArgs e)
+    {
+        if (WszystkieWidoczneZaznaczone()) Siatka.SelectedItems.Clear();
+        else Siatka.SelectAll();
+    }
+
+    // Wszystkie pliki trafiają luzem do wskazanego folderu.
+    // Klasyczny systemowy wybór folderu: ten z Windows App SDK nie pozwalał wybrać Pulpitu ani katalogu
+    // głównego pendrive'a („Brak obiektu dla monikera” / „Nazwa folderu jest nieprawidłowa”).
+    private async void ZapiszDo_Click(object sender, RoutedEventArgs e)
+    {
+        var okno = new Windows.Storage.Pickers.FolderPicker { CommitButtonText = "Zapisz" };
+        okno.FileTypeFilter.Add("*");
+        WinRT.Interop.InitializeWithWindow.Initialize(okno, WinRT.Interop.WindowNative.GetWindowHandle(this));
+        var folder = await okno.PickSingleFolderAsync();
+        if (folder is null) return;
+        var pliki = Zaznaczone();
+        await Eksportuj(() =>
+        {
+            var zajete = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var plik in pliki)
+                File.Copy(plik.Sciezka, Path.Combine(folder.Path, WolnaNazwa(plik.Nazwa, zajete, folder.Path)));
+        }, $"Zapisano {Pliki(pliki.Count)} w folderze {folder.Path}");
+    }
+
+    private async void PobierzZip_Click(object sender, RoutedEventArgs e)
+    {
+        var pliki = Zaznaczone();
+        var okno = new FileSavePicker(AppWindow.Id)
+        {
+            SuggestedFileName = $"Galeria-{DateTime.Now:yyyy-MM-dd}-{pliki.Count}-plikow",
+            DefaultFileExtension = ".zip",
+        };
+        okno.FileTypeChoices.Add("Archiwum ZIP", [".zip"]);
+        var wynik = await okno.PickSaveFileAsync();
+        if (wynik is null) return;
+        await Eksportuj(() =>
+        {
+            // Bez kompresji: zdjęcia i filmy są już skompresowane, a tak jest dużo szybciej.
+            using var zip = new ZipArchive(File.Create(wynik.Path), ZipArchiveMode.Create);
+            var zajete = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var plik in pliki)
+                zip.CreateEntryFromFile(plik.Sciezka, WolnaNazwa(plik.Nazwa, zajete), CompressionLevel.NoCompression);
+        }, $"Zapisano archiwum {Path.GetFileName(wynik.Path)} ({Pliki(pliki.Count)})");
+    }
+
+    // Systemowe okno udostępniania Windows (Poczta, Phone Link, Udostępnianie w pobliżu…).
+    private async void Udostepnij_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            _doUdostepnienia = [.. await Task.WhenAll(Zaznaczone().Select(p => StorageFile.GetFileFromPathAsync(p.Sciezka).AsTask()))];
+            DataTransferManagerInterop.ShowShareUIForWindow(WinRT.Interop.WindowNative.GetWindowHandle(this));
+        }
+        catch (Exception ex)
+        {
+            PokazKomunikat($"Nie udało się udostępnić plików: {ex.Message}", InfoBarSeverity.Error);
+        }
+    }
+
+    private async Task Eksportuj(Action praca, string sukces)
+    {
+        _eksport = true;
+        OdswiezZaznaczenie();
+        try
+        {
+            await Task.Run(praca);
+            PokazKomunikat(sukces, InfoBarSeverity.Success);
+        }
+        catch (Exception ex)
+        {
+            PokazKomunikat($"Nie udało się: {ex.Message}", InfoBarSeverity.Error);
+        }
+        finally
+        {
+            _eksport = false;
+            OdswiezZaznaczenie();
+        }
+    }
+
+    private void PokazKomunikat(string tekst, InfoBarSeverity rodzaj)
+    {
+        Komunikat.Severity = rodzaj;
+        Komunikat.Message = tekst;
+        Komunikat.IsOpen = true;
+    }
+
+    // „zdjecie.jpg”, „zdjecie (2).jpg”… — nazwa nieużyta w tym eksporcie i (gdy podano folder) nieistniejąca na dysku.
+    private static string WolnaNazwa(string nazwa, HashSet<string> zajete, string? folder = null)
+    {
+        var kandydat = nazwa;
+        for (var i = 2; zajete.Contains(kandydat) || folder is not null && File.Exists(Path.Combine(folder, kandydat)); i++)
+            kandydat = $"{Path.GetFileNameWithoutExtension(nazwa)} ({i}){Path.GetExtension(nazwa)}";
+        zajete.Add(kandydat);
+        return kandydat;
+    }
+
+    // ---------- Kolor przewodni ----------
+
+    private void ZastosujKolor_Click(object sender, RoutedEventArgs e)
+    {
+        var c = WyborKoloru.Color;
+        ZmienKolorPrzewodni($"#{c.R:X2}{c.G:X2}{c.B:X2}");
+    }
+
+    private void KolorDomyslny_Click(object sender, RoutedEventArgs e) => ZmienKolorPrzewodni(null);
+
+    private void ZmienKolorPrzewodni(string? kolor)
+    {
+        OknoKoloru.Hide();
+        _ustawienia.KolorPrzewodni = kolor;
+        _ustawienia.Zapisz();
+        UstawKolorPrzewodni(kolor);
+        // Pędzle z ThemeResource przeliczają kolor dopiero przy zmianie motywu — przełączamy go tam i z powrotem.
+        var odwrotny = Korzen.ActualTheme == ElementTheme.Dark ? ElementTheme.Light : ElementTheme.Dark;
+        Korzen.RequestedTheme = OknoUstawien.RequestedTheme = odwrotny;
+        UstawMotyw();
+    }
+
+    private const string DomyslnyKolor = "#138AE2";
+
+    // Nadpisuje kolor akcentu Windows (SystemAccentColor i jego jaśniejsze/ciemniejsze odcienie); null = kolor domyślny.
+    private static void UstawKolorPrzewodni(string? kolor)
+    {
+        kolor ??= DomyslnyKolor;
+        var zasoby = Application.Current.Resources;
+        string[] klucze = ["SystemAccentColor", "SystemAccentColorLight1", "SystemAccentColorLight2", "SystemAccentColorLight3",
+                           "SystemAccentColorDark1", "SystemAccentColorDark2", "SystemAccentColorDark3"];
+        var baza =Windows.UI.Color.FromArgb(255, Convert.ToByte(kolor[1..3], 16), Convert.ToByte(kolor[3..5], 16), Convert.ToByte(kolor[5..7], 16));
+        zasoby[klucze[0]] = baza;
+        for (var i = 1; i <= 3; i++)
+        {
+            zasoby[klucze[i]] = Wymieszaj(baza, Colors.White, 0.15 * i);
+            zasoby[klucze[i + 3]] = Wymieszaj(baza, Colors.Black, 0.15 * i);
+        }
+    }
+
+    private static Windows.UI.Color Wymieszaj(Windows.UI.Color a, Windows.UI.Color b, double t) => Windows.UI.Color.FromArgb(255,
+        (byte)(a.R + (b.R - a.R) * t), (byte)(a.G + (b.G - a.G) * t), (byte)(a.B + (b.B - a.B) * t));
 
     private void Poprzedni_Click(object sender, RoutedEventArgs e) => PrzejdzO(-1);
     private void Nastepny_Click(object sender, RoutedEventArgs e) => PrzejdzO(1);
@@ -443,10 +663,31 @@ public sealed partial class MainWindow : Window
     private void Ulubione_Click(object sender, RoutedEventArgs e)
     {
         var element = _widoczne[_indeksPodgladu];
-        if (!_ustawienia.Ulubione.Remove(element.Sciezka)) _ustawienia.Ulubione.Add(element.Sciezka);
-        _ustawienia.Zapisz();
+        PrzelaczUlubione(element);
         _ulubioneZmienione = true;
         UstawSerce(element);
+    }
+
+    // Serce na kafelku; w widoku Ulubionych odznaczony plik od razu znika z listy.
+    private void SerceKafelka_Click(object sender, RoutedEventArgs e)
+    {
+        PrzelaczUlubione((ElementGalerii)((FrameworkElement)sender).DataContext);
+        if (_widokUlubionych) OdswiezWidok();
+    }
+
+    private void Kafelek_PointerEntered(object sender, PointerRoutedEventArgs e) => UstawNajechanie(sender, true);
+    private void Kafelek_PointerExited(object sender, PointerRoutedEventArgs e) => UstawNajechanie(sender, false);
+
+    private static void UstawNajechanie(object kafelek, bool najechany)
+    {
+        if (((FrameworkElement)kafelek).DataContext is ElementGalerii element) element.Najechany = najechany;
+    }
+
+    private void PrzelaczUlubione(ElementGalerii element)
+    {
+        if (!_ustawienia.Ulubione.Remove(element.Sciezka)) _ustawienia.Ulubione.Add(element.Sciezka);
+        _ustawienia.Zapisz();
+        element.Ulubiony = _ustawienia.Ulubione.Contains(element.Sciezka);
         LicznikUlubionych.Text = _wszystkie.Count(el => _ustawienia.Ulubione.Contains(el.Sciezka)).ToString();
     }
 

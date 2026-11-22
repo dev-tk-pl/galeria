@@ -63,11 +63,17 @@ pasek narzędzi nad siatką, karty z nazwą i datą pliku. Kolory są brane z Wi
 
 1. Kliknij **Dodaj folder** i wskaż folder ze zdjęciami (np. `D:\Zdjęcia`). Skanowane są też
    wszystkie podfoldery. Można podłączyć kilka folderów.
-2. **Ustawienia** (⚙ albo karta **Wybrane foldery**): motyw Systemowy / Jasny / Ciemny, lista
+2. **Ustawienia** (⚙ albo karta **Wybrane foldery**): motyw Systemowy / Jasny / Ciemny, **kolor przewodni**
+   (**Wybierz kolor** otwiera paletę barw z polami RGB i hex; **Kolor domyślny** wraca do niebieskiego `#138AE2`), lista
    folderów z liczbą plików, **Odłącz** (pliki zostają na dysku), **Dodaj folder**, **Odłącz wszystkie**,
    przełącznik **Aktualizacje** (Instaluj automatycznie / Tylko informuj) i numer wersji.
 3. **Szukaj** (albo **Ctrl+K**) filtruje po nazwie pliku i ścieżce. **Sortuj**: Najnowsze, Najstarsze,
    Nazwa. **Siatka**: Domyślna, 3, 5 albo 7 kolumn.
+   **Wybierz pliki** włącza zaznaczanie (pola wyboru na kafelkach): **Zaznacz widoczne**, **Zapisz do…**
+   (kopie wszystkich plików luzem w wybranym folderze; powtórzone nazwy dostają „(2)”, „(3)”…),
+   **Pobierz ZIP**, **Udostępnij** (systemowe okno udostępniania Windows), **Gotowe**.
+   **♥** w lewym górnym rogu kafelka (widoczne po najechaniu kursorem, przy ulubionych zawsze) dodaje plik
+   do ulubionych albo go z nich usuwa.
 4. Kliknij kafelek, żeby otworzyć podgląd:
    - u góry nazwa, data, rozmiar, ścieżka i licznik; pod zdjęciem aparat/telefon, ogniskowa, przysłona, czas, ISO;
    - **Obróć** (tylko widok, plik bez zmian), **Usuń** (do Kosza Windows, po potwierdzeniu), **Drukuj**
@@ -87,7 +93,7 @@ pasek narzędzi nad siatką, karty z nazwą i datą pliku. Kolory są brane z Wi
    - **Opcje zapisywania** → zapis kopii JPG/PNG w pełnej rozdzielczości (okno zapisu podpowiada folder
      oryginału i nazwę „…-edytowane”). Oryginał zostaje bez zmian. **Anuluj** albo **Esc** zamyka edytor.
 
-Foldery, motyw, liczba kolumn, ulubione i ustawienie aktualizacji są zapamiętywane.
+Foldery, motyw, kolor przewodni, liczba kolumn, ulubione i ustawienie aktualizacji są zapamiętywane.
 
 ### Obsługiwane pliki
 
@@ -101,7 +107,7 @@ Pozostałe pliki (np. `NEF`, `PSD`) są pomijane. Czy film się odtworzy, zależ
 `%LOCALAPPDATA%\Galeria\ustawienia.json`, np.:
 
 ```json
-{"Foldery":["D:\\Zdjęcia"],"Motyw":"Systemowy","Kolumny":0,"Ulubione":["D:\\Zdjęcia\\a.jpg"],"Autoaktualizacja":true}
+{"Foldery":["D:\\Zdjęcia"],"Motyw":"Systemowy","Kolumny":0,"Ulubione":["D:\\Zdjęcia\\a.jpg"],"Autoaktualizacja":true,"KolorPrzewodni":null}
 ```
 
 Usunięcie tego pliku przywraca stan „pierwsze uruchomienie”. Stary format (`OstatniFolder`)
@@ -112,7 +118,6 @@ jest przy wczytaniu przenoszony do listy `Foldery`.
 - Miniatury tworzy Windows (te same, których używa Eksplorator). Przy pierwszym oglądaniu dużej liczby
   zdjęć z wolnego dysku pojawiają się z opóźnieniem (nawet 20–30 s na ekran po szybkim przewinięciu).
   Potem są w pamięci podręcznej Windows i wyświetlają się od razu.
-- Brak zaznaczania i eksportu ZIP z PWA (`..\zdjecia-pwa`).
 - Zapisana kopia z edytora nie zawiera metadanych EXIF oryginału (aparat, ISO itd.).
 - Podgląd GIF pokazuje tylko pierwszą klatkę, a SVG się nie wyświetla (dekoder obrazów Windows).
 
@@ -126,6 +131,7 @@ jest przy wczytaniu przenoszony do listy `Foldery`.
 | `Ustawienia.cs` | Odczyt/zapis `ustawienia.json` |
 | `Edytor.xaml`, `Edytor.xaml.cs` | Edytor zdjęcia: kadrowanie i korekta (efekty Win2D), zapis kopii |
 | `Obrazy.cs` | Dekodowanie zdjęć z orientacją EXIF (podgląd i edytor) |
+| `Assets\Galeria.ico` | Ikona aplikacji (exe, okno, instalator) |
 | `GaleriaDesktop.csproj` | Konfiguracja projektu (.NET 10, WinUI 3, Windows App SDK 2.7, bez MSIX) |
 | `Properties\PublishProfiles\JedenPlik.pubxml` | Profil publikacji: jeden samodzielny `Galeria.exe` |
 

@@ -182,17 +182,49 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <AutoSuggestBox x:Name="Szukaj" PlaceholderText="Szukaj zdjęć i filmów… (Ctrl+K)" QueryIcon="Find"
-                                    Width="360" HorizontalAlignment="Left" TextChanged="Szukaj_TextChanged">
-                        <AutoSuggestBox.KeyboardAccelerators>
-                            <KeyboardAccelerator Modifiers="Control" Key="K" Invoked="Szukaj_Skrot" />
-                        </AutoSuggestBox.KeyboardAccelerators>
-                    </AutoSuggestBox>
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <AutoSuggestBox x:Name="Szukaj" PlaceholderText="Szukaj zdjęć i filmów… (Ctrl+K)" QueryIcon="Find"
+                                        Width="360" TextChanged="Szukaj_TextChanged">
+                            <AutoSuggestBox.KeyboardAccelerators>
+                                <KeyboardAccelerator Modifiers="Control" Key="K" Invoked="Szukaj_Skrot" />
+                            </AutoSuggestBox.KeyboardAccelerators>
+                        </AutoSuggestBox>
+                        <Button x:Name="WybierzPliki" Click="WybierzPliki_Click">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE73A;" FontSize="14" />
+                                <TextBlock Text="Wybierz pliki" />
+                            </StackPanel>
+                        </Button>
+                        <!-- Tryb zaznaczania (jak selection-actions w PWA) -->
+                        <StackPanel x:Name="PanelZaznaczania" Orientation="Horizontal" Spacing="8" Visibility="Collapsed">
+                            <TextBlock x:Name="LiczbaZaznaczonych" VerticalAlignment="Center" Margin="0,0,4,0"
+                                       Style="{StaticResource BodyStrongTextBlockStyle}" />
+                            <HyperlinkButton x:Name="ZaznaczWidoczne" Content="Zaznacz widoczne" Click="ZaznaczWidoczne_Click" />
+                            <Button x:Name="ZapiszDo" Click="ZapiszDo_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE8DE;" FontSize="14" />
+                                    <TextBlock Text="Zapisz do…" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="PobierzZip" Click="PobierzZip_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE896;" FontSize="14" />
+                                    <TextBlock Text="Pobierz ZIP" />
+                                </StackPanel>
+                            </Button>
+                            <Button x:Name="Udostepnij" Click="Udostepnij_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE72D;" FontSize="14" />
+                                    <TextBlock Text="Udostępnij" />
+                                </StackPanel>
+                            </Button>
+                            <HyperlinkButton Content="Gotowe" Click="Gotowe_Click" />
+                        </StackPanel>
+                    </StackPanel>
                     <TextBlock x:Name="LiczbaPlikow" Grid.Column="1" VerticalAlignment="Center"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                    <StackPanel x:Name="PoleSortowania" Grid.Column="2" Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="Sortuj:" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         <ComboBox x:Name="Sortowanie" MinWidth="130">
                             <x:String>Najnowsze</x:String>
@@ -200,7 +232,7 @@
                             <x:String>Nazwa</x:String>
                         </ComboBox>
                     </StackPanel>
-                    <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+                    <StackPanel x:Name="PoleSiatki" Grid.Column="3" Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="Siatka:" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                         <ComboBox x:Name="WyborKolumn" MinWidth="130">
                             <x:String>Domyślna</x:String>
@@ -209,12 +241,6 @@
                             <x:String>7 kolumn</x:String>
                         </ComboBox>
                     </StackPanel>
-                    <Button Grid.Column="4" Click="DodajFolder_Click">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <FontIcon Glyph="&#xE710;" FontSize="14" />
-                            <TextBlock Text="Dodaj folder" />
-                        </StackPanel>
-                    </Button>
                 </Grid>
 
                 <!-- Pusty stan -->
@@ -282,8 +308,8 @@
 
                 <!-- Siatka miniatur; prawy margines ujemny kompensuje odstęp ostatniej kolumny -->
                 <GridView x:Name="Siatka" Grid.Row="1" Visibility="Collapsed" Margin="0,0,-17,0"
-                          SelectionMode="None" IsItemClickEnabled="True"
-                          ItemClick="Siatka_ItemClick"
+                          SelectionMode="None" IsItemClickEnabled="True" IsMultiSelectCheckBoxEnabled="False"
+                          ItemClick="Siatka_ItemClick" SelectionChanged="Siatka_SelectionChanged"
                           ContainerContentChanging="Siatka_ContainerContentChanging"
                           SizeChanged="Siatka_SizeChanged">
                     <GridView.ItemsPanel>
@@ -293,7 +319,8 @@
                     </GridView.ItemsPanel>
                     <GridView.ItemContainerStyle>
                         <Style TargetType="GridViewItem" BasedOn="{StaticResource DefaultGridViewItemStyle}">
-                            <Setter Property="Margin" Value="0" />
+                            <!-- Odstęp między kafelkami na kontenerze, żeby ramka zaznaczenia go nie obejmowała -->
+                            <Setter Property="Margin" Value="0,0,17,22" />
                             <Setter Property="Padding" Value="0" />
                             <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                             <Setter Property="VerticalContentAlignment" Value="Stretch" />
@@ -301,7 +328,8 @@
                     </GridView.ItemContainerStyle>
                     <GridView.ItemTemplate>
                         <DataTemplate x:DataType="local:ElementGalerii">
-                            <Grid Margin="0,0,17,22" RowSpacing="9">
+                            <Grid RowSpacing="9" Background="Transparent"
+                                  PointerEntered="Kafelek_PointerEntered" PointerExited="Kafelek_PointerExited">
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="*" />
                                     <RowDefinition Height="Auto" />
@@ -312,12 +340,36 @@
                                         <ImageBrush ImageSource="{x:Bind Miniatura, Mode=OneWay}" Stretch="UniformToFill" />
                                     </Border.Background>
                                 </Border>
-                                <Border Visibility="{x:Bind WidocznoscIkonyFilmu}" Margin="9" Padding="7"
-                                        CornerRadius="14" Background="#99000000"
-                                        HorizontalAlignment="Left" VerticalAlignment="Top">
-                                    <FontIcon Glyph="&#xE768;" FontSize="12" Foreground="White" />
-                                </Border>
-                                <StackPanel Grid.Row="1" Spacing="2" Margin="2,0">
+                                <!-- Lewy górny róg (prawy zajmuje pole wyboru w trybie zaznaczania): ikona filmu
+                                     i serce — widoczne po najechaniu albo przy ulubionym; przełącza ulubione bez otwierania podglądu -->
+                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="8"
+                                            HorizontalAlignment="Left" VerticalAlignment="Top">
+                                    <Border Visibility="{x:Bind WidocznoscIkonyFilmu}" Padding="7" CornerRadius="14"
+                                            Background="#99000000" VerticalAlignment="Center">
+                                        <FontIcon Glyph="&#xE768;" FontSize="12" Foreground="White" />
+                                    </Border>
+                                    <Button Click="SerceKafelka_Click" Padding="7" CornerRadius="15"
+                                            Background="#99000000" BorderThickness="0"
+                                            Visibility="{x:Bind WidocznoscSerca, Mode=OneWay}"
+                                            ToolTipService.ToolTip="Ulubione">
+                                        <Grid>
+                                            <FontIcon Glyph="&#xEB51;" FontSize="14" Foreground="White" />
+                                            <FontIcon Glyph="&#xEB52;" FontSize="14" Visibility="{x:Bind Ulubiony, Mode=OneWay}"
+                                                      Foreground="{ThemeResource SystemFillColorCriticalBrush}" />
+                                        </Grid>
+                                    </Button>
+                                </StackPanel>
+                                <!-- Własne pole wyboru (wbudowane wyłączone: IsMultiSelectCheckBoxEnabled) —
+                                     ten sam rozmiar (28 px) i odstęp od rogu (8 px) co serce -->
+                                <Grid Width="28" Height="28" Margin="8" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                      Visibility="{x:Bind WidocznoscPolaWyboru, Mode=OneWay}">
+                                    <Border CornerRadius="7" Background="#99000000" BorderBrush="White" BorderThickness="1.5" />
+                                    <Border CornerRadius="7" Background="{ThemeResource AccentFillColorDefaultBrush}"
+                                            Visibility="{x:Bind WidocznoscZaznaczenia, Mode=OneWay}">
+                                        <FontIcon Glyph="&#xE73E;" FontSize="14" Foreground="White" />
+                                    </Border>
+                                </Grid>
+                                <StackPanel Grid.Row="1" Spacing="2" Margin="4,0,4,6">
                                     <TextBlock Text="{x:Bind Nazwa}" ToolTipService.ToolTip="{x:Bind Nazwa}"
                                                Style="{StaticResource BodyStrongTextBlockStyle}"
                                                TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" />
@@ -335,6 +387,10 @@
                         </StackPanel>
                     </GridView.Footer>
                 </GridView>
+
+                <!-- Komunikat po zapisie / ZIP / udostępnianiu -->
+                <InfoBar x:Name="Komunikat" Grid.Row="1" IsClosable="True" Margin="0,0,0,20"
+                         HorizontalAlignment="Center" VerticalAlignment="Bottom" />
             </Grid>
         </Grid>
 
@@ -350,6 +406,30 @@
                         <x:String>Jasny</x:String>
                         <x:String>Ciemny</x:String>
                     </RadioButtons>
+                </StackPanel>
+
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Kolor przewodni" Style="{StaticResource BodyStrongTextBlockStyle}" />
+                    <TextBlock Text="Kolor przycisków, ikon i zaznaczenia."
+                               TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Border Width="18" Height="18" CornerRadius="9" Background="{ThemeResource AccentFillColorDefaultBrush}" />
+                            <TextBlock Text="Wybierz kolor" />
+                        </StackPanel>
+                        <Button.Flyout>
+                            <Flyout x:Name="OknoKoloru">
+                                <StackPanel Spacing="12">
+                                    <ColorPicker x:Name="WyborKoloru" ColorSpectrumShape="Box" IsAlphaEnabled="False"
+                                                 IsMoreButtonVisible="False" />
+                                    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                                        <Button Content="Kolor domyślny" Click="KolorDomyslny_Click" />
+                                        <Button Content="Zastosuj" Style="{StaticResource AccentButtonStyle}" Click="ZastosujKolor_Click" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Flyout>
+                        </Button.Flyout>
+                    </Button>
                 </StackPanel>
 
                 <StackPanel Spacing="8">
