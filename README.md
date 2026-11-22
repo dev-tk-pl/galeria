@@ -60,7 +60,7 @@ Testów automatycznych na razie nie ma. Jedyną automatyczną weryfikacją jest 
 Układ okna jest wzorowany na PWA: pasek boczny (Wszystkie zdjęcia, Ulubione, Wybrane foldery),
 pasek narzędzi nad siatką, karty z nazwą i datą pliku. Kolory są brane z Windows.
 
-1. Kliknij **Dodaj folder** i wskaż folder ze zdjęciami (np. `L:\ZDJECIA`). Skanowane są też
+1. Kliknij **Dodaj folder** i wskaż folder ze zdjęciami (np. `D:\Zdjęcia`). Skanowane są też
    wszystkie podfoldery. Można podłączyć kilka folderów.
 2. **Ustawienia** (⚙ albo karta **Wybrane foldery**): motyw Systemowy / Jasny / Ciemny, lista
    folderów z liczbą plików, **Odłącz** (pliki zostają na dysku), **Dodaj folder**, **Odłącz wszystkie**.
@@ -99,7 +99,7 @@ Pozostałe pliki (np. `NEF`, `PSD`) są pomijane. Czy film się odtworzy, zależ
 `%LOCALAPPDATA%\Galeria\ustawienia.json`, np.:
 
 ```json
-{"Foldery":["L:\\ZDJECIA"],"Motyw":"Systemowy","Kolumny":0,"Ulubione":["L:\\ZDJECIA\\a.jpg"]}
+{"Foldery":["D:\\Zdjęcia"],"Motyw":"Systemowy","Kolumny":0,"Ulubione":["D:\\Zdjęcia\\a.jpg"]}
 ```
 
 Usunięcie tego pliku przywraca stan „pierwsze uruchomienie”. Stary format (`OstatniFolder`)
