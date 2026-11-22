@@ -6,8 +6,9 @@ Set-Location $PSScriptRoot
 $repo = 'https://github.com/dev-tk-pl/galeria'
 $wersja = ([xml](Get-Content GaleriaDesktop.csproj)).Project.PropertyGroup.Version
 
-# Osobny folder kompilacji, żeby uruchomiona Galeria z bin\Release nie blokowała publikacji
-dotnet publish -c Release --self-contained -p:OutputPath=bin\Velopack\ -o bin\velopack-publish
+# Osobny folder kompilacji, żeby uruchomiona Galeria z bin\Release nie blokowała publikacji.
+# EnableMsixTooling: bez tego publikacja pomija Galeria.pri (zasoby XAML) i aplikacja pada przy starcie.
+dotnet publish -c Release --self-contained -p:OutputPath=bin\Velopack\ -p:EnableMsixTooling=true -o bin\velopack-publish
 if ($LASTEXITCODE) { exit 1 }
 
 vpk pack -u GaleriaDesktop -v $wersja -p bin\velopack-publish -e Galeria.exe --packTitle Galeria -o Releases
